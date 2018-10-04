@@ -65,6 +65,7 @@ var (
 	remoteFlag hostFlag
 	serverFlag hostFlag
 	keyFlag    string
+	vFlag      bool
 )
 
 func init() {
@@ -72,18 +73,30 @@ func init() {
 	flag.Var(&remoteFlag, "remote", "remote endpoing address: <host>:<port>")
 	flag.Var(&serverFlag, "server", "server address: [<user>@]<host>[:<port>]")
 	flag.StringVar(&keyFlag, "i", "", "server authentication key")
+	flag.BoolVar(&vFlag, "v", false, "increases the log verbosity")
 }
 
 func main() {
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
-
 	if len(os.Args[1:]) == 0 {
-		fmt.Printf("usage: %s [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-i <key_path>]\n", os.Args[0])
+		fmt.Printf("usage: %s [-v] [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-i <key_path>]\n", os.Args[0])
 		os.Exit(1)
 	}
 
 	flag.Parse()
+
+	log.SetOutput(os.Stdout)
+
+	if vFlag {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	log.WithFields(log.Fields{
+		"local":  localFlag.String(),
+		"remote": remoteFlag.String(),
+		"server": serverFlag.String(),
+		"i":      keyFlag,
+		"v":      vFlag,
+	}).Debug("cli options")
 
 	s, err := tunnel.NewServer(serverFlag.User, serverFlag.Address(), keyFlag)
 	if err != nil {

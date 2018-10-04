@@ -23,7 +23,7 @@ $ go get -d github.com/davrodpin/mole/... && go install github.com/davrodpin/mol
 ### Provide all supported options
 
 ```sh
-$ mole -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -i ~/.ssh/id_rsa
+$ mole -local -v 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -i ~/.ssh/id_rsa
 ```
 
 ### Use the ssh config file to lookup a given server host
@@ -33,15 +33,16 @@ $ cat $HOME/.ssh/config
 Host example1
   Hostname 10.0.0.12
   Port 2222
-  Username user
+  User user
   IdentityFile ~/.ssh/id_rsa
-$ mole -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server example1 
+$ mole -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server example1
+INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
 ```
 
 ### Let mole to randomly select the local endpoint
 
 ```sh
-$ mole -remote 172.17.0.100:80 -server example1 
+$ mole -v -remote 172.17.0.100:80 -server example1 
 DEBU[0000] using ssh config file from: /home/mole/.ssh/config
 DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
 DEBU[0000] tunnel: [local:127.0.0.1:61305, server:10.0.0.12:2222, remote:172.17.0.100:80]
