@@ -103,6 +103,19 @@ func TestTunnel(t *testing.T) {
 	}
 }
 
+func TestRandomLocalPort(t *testing.T) {
+	expected := "127.0.0.1:0"
+	local := ""
+	remote := "172.17.0.1:80"
+	server, _ := NewServer("", "test", "")
+
+	tun := New(local, server, remote)
+
+	if tun.local != expected {
+		t.Errorf("unexpected local endpoint: expected: %s, value: %s", expected, tun.local)
+	}
+}
+
 func TestMain(m *testing.M) {
 	prepareTestEnv()
 

@@ -102,6 +102,11 @@ type Tunnel struct {
 
 //New creates a new instance of Tunnel
 func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
+
+	if localAddress == "" {
+		localAddress = "127.0.0.1:0"
+	}
+
 	return &Tunnel{
 		local:  localAddress,
 		server: server,
@@ -118,6 +123,10 @@ func (t *Tunnel) Start() error {
 		return err
 	}
 	defer local.Close()
+
+	t.local = local.Addr().String()
+
+	log.Debugf("tunnel: %s", t)
 
 	log.WithFields(log.Fields{
 		"local_address": t.local,

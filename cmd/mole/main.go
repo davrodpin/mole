@@ -79,7 +79,7 @@ func main() {
 	log.SetLevel(log.DebugLevel)
 
 	if len(os.Args[1:]) == 0 {
-		fmt.Printf("usage: %s -local <host>:<port> -remote <host>:<port> -server [<user>@]<host>[:<port>] [-i <key_path>]\n", os.Args[0])
+		fmt.Printf("usage: %s [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-i <key_path>]\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -93,8 +93,6 @@ func main() {
 	log.Debugf("server: %s", s)
 
 	t := tunnel.New(localFlag.String(), s, remoteFlag.String())
-
-	log.Debugf("tunnel: %s", t)
 
 	err = t.Start()
 	if err != nil {
