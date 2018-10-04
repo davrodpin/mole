@@ -1,0 +1,11 @@
+Host test
+    Hostname 127.0.0.1
+    Port 2222
+    User mole_test
+    IdentityFile ~/.ssh/id_rsa
+
+Host test*
+    Hostname 172.17.0.1
+    Port 2223
+    User mole_test2
+    IdentityFile ~/.ssh/other_key
