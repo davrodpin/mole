@@ -66,23 +66,32 @@ var (
 	serverFlag hostFlag
 	keyFlag    string
 	vFlag      bool
+	helpFlag   bool
 )
 
 func init() {
 	flag.Var(&localFlag, "local", "local endpoint address: <host>:<port>")
 	flag.Var(&remoteFlag, "remote", "remote endpoing address: <host>:<port>")
 	flag.Var(&serverFlag, "server", "server address: [<user>@]<host>[:<port>]")
-	flag.StringVar(&keyFlag, "i", "", "server authentication key")
-	flag.BoolVar(&vFlag, "v", false, "increases the log verbosity")
+	flag.StringVar(&keyFlag, "key", "", "server authentication key file path")
+	flag.BoolVar(&vFlag, "v", false, "increases log verbosity")
+	flag.BoolVar(&helpFlag, "help", false, "list all options available")
 }
 
 func main() {
 	if len(os.Args[1:]) == 0 {
-		fmt.Printf("usage: %s [-v] [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-i <key_path>]\n", os.Args[0])
+		fmt.Printf("%s\n", usage())
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	flag.Parse()
+
+	if helpFlag {
+		fmt.Printf("%s\n", usage())
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 
 	log.SetOutput(os.Stdout)
 
@@ -94,7 +103,7 @@ func main() {
 		"local":  localFlag.String(),
 		"remote": remoteFlag.String(),
 		"server": serverFlag.String(),
-		"i":      keyFlag,
+		"key":    keyFlag,
 		"v":      vFlag,
 	}).Debug("cli options")
 
@@ -115,4 +124,11 @@ func main() {
 
 		os.Exit(1)
 	}
+}
+
+func usage() string {
+	return `usage:
+  mole [-v] [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+  mole -help
+	`
 }

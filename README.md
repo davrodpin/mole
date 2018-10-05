@@ -23,7 +23,12 @@ $ go get -d github.com/davrodpin/mole/... && go install github.com/davrodpin/mol
 ### Provide all supported options
 
 ```sh
-$ mole -local -v 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -i ~/.ssh/id_rsa
+$ mole -v -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -key ~/.ssh/id_rsa
+DEBU[0000] cli options                                   key=/home/mole/.ssh/id_rsa local="127.0.0.1:8080" remote="172.17.0.100:80" server="user@example.com:22" v=true
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
+DEBU[0000] tunnel: [local:127.0.0.1:8080, server:example.com:22, remote:172.17.0.100:80]
+INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
 ```
 
 ### Use the ssh config file to lookup a given server host
@@ -35,16 +40,18 @@ Host example1
   Port 2222
   User user
   IdentityFile ~/.ssh/id_rsa
-$ mole -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server example1
+$ mole -v -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server example1
+DEBU[0000] cli options                                   key= local="127.0.0.1:8080" remote="172.17.0.100:80" server=example1 v=true
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
+DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:172.17.0.100:80]
 INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
 ```
 
 ### Let mole to randomly select the local endpoint
 
 ```sh
-$ mole -v -remote 172.17.0.100:80 -server example1 
-DEBU[0000] using ssh config file from: /home/mole/.ssh/config
-DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
-DEBU[0000] tunnel: [local:127.0.0.1:61305, server:10.0.0.12:2222, remote:172.17.0.100:80]
+$ mole -remote 172.17.0.100:80 -server example1 
 INFO[0000] listening on local address                    local_address="127.0.0.1:61305"
 ```
+
