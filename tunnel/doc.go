@@ -1,8 +1,8 @@
 /*
-tunnel provides APIs to create SSH tunnels to perform local port forwarding,
-leveraging the SSH configuration file (e.g. $HOME/.ssh/config) to find
-specific attributes of the target ssh server like user name, port, host name
-and key when not provided.
+Package tunnel provides APIs to create SSH tunnels to perform local port
+forwarding, leveraging the SSH configuration file (e.g. $HOME/.ssh/config) to
+find specific attributes of the target ssh server like user name, port, host
+name and key when not provided.
 
 SSH Config File Support
 

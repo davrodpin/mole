@@ -126,9 +126,9 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-//prepareTunnel creates a Tunnel object making sure all infrastructure
-//dependencies (ssh and http servers) are ready returning a connection that
-//can be use to reach the remote http server through the tunnel.
+// prepareTunnel creates a Tunnel object making sure all infrastructure
+// dependencies (ssh and http servers) are ready returning a connection that
+// can be use to reach the remote http server through the tunnel.
 func prepareTunnel(t *testing.T) net.Conn {
 	sshAddr := createSSHServer(keyPath)
 	generateKnownHosts(sshAddr.String(), publicKeyPath, knownHostsPath)
@@ -191,8 +191,8 @@ func prepareTestEnv() {
 	os.Setenv("HOME", home)
 }
 
-//newHttpClient create an http client that will always use the given connection
-//to perform http requests.
+// newHttpClient create an http client that will always use the given
+// connection to perform http requests.
 func newHttpClient(conn net.Conn) http.Client {
 	tr := &http.Transport{
 		Dial: func(network, address string) (net.Conn, error) {
@@ -208,11 +208,11 @@ func newHttpClient(conn net.Conn) http.Client {
 	return client
 }
 
-//get performs a http request using the given client appending the given
-//resource to to a hard-coded URL.
+// get performs a http request using the given client appending the given
+// resource to to a hard-coded URL.
 //
-//The request performed by this function is designed to reach the other side
-//through a pipe (net.Pipe()) and this is the reason the URL is hard-coded.
+// The request performed by this function is designed to reach the other side
+// through a pipe (net.Pipe()) and this is the reason the URL is hard-coded.
 func get(client http.Client, resource string) (string, error) {
 	resp, err := client.Get(fmt.Sprintf("%s%s", "http://any-url-is.fine", resource))
 	if err != nil {
@@ -225,11 +225,11 @@ func get(client http.Client, resource string) (string, error) {
 	return string(body), nil
 }
 
-//createWebServer spawns a new http server, listening on a random user port and
-//providing a response identical to the resource provided by the request.
+// createWebServer spawns a new http server, listening on a random user port
+// and providing a response identical to the resource provided by the request.
 //
-//Example: If the request URI is /this-is-a-test, the response will be
-//this-is-a-test
+// Example: If the request URI is /this-is-a-test, the response will be
+// this-is-a-test
 func createWebServer() net.Addr {
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -245,16 +245,16 @@ func createWebServer() net.Addr {
 	return l.Addr()
 }
 
-//createSSHServer starts a SSH server that authenticates connections using
-//the given keyPath, listens on a random user port and returns the SSH Server
-//address.
+// createSSHServer starts a SSH server that authenticates connections using
+// the given keyPath, listens on a random user port and returns the SSH Server
+// address.
 //
-//The SSH Server created by this function only responds to "direct-tcpip",
-//which is used to establish local port forwarding.
+// The SSH Server created by this function only responds to "direct-tcpip",
+// which is used to establish local port forwarding.
 //
-//References:
-//https://gist.github.com/jpillora/b480fde82bff51a06238
-//https://tools.ietf.org/html/rfc4254#section-7.2
+// References:
+// https://gist.github.com/jpillora/b480fde82bff51a06238
+// https://tools.ietf.org/html/rfc4254#section-7.2
 func createSSHServer(keyPath string) net.Addr {
 	conf := &ssh.ServerConfig{
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
@@ -309,8 +309,8 @@ func createSSHServer(keyPath string) net.Addr {
 	return l.Addr()
 }
 
-//generateKnownHosts creates a new "known_hosts" file on a given path with a
-//single entry based on the given SSH server address and public key.
+// generateKnownHosts creates a new "known_hosts" file on a given path with a
+// single entry based on the given SSH server address and public key.
 func generateKnownHosts(sshAddr, pubKeyPath, knownHostsPath string) {
 	i := strings.Split(sshAddr, ":")[0]
 	p := strings.Split(sshAddr, ":")[1]

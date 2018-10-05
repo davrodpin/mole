@@ -10,14 +10,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//Resolver finds specific attributes of a ssh server configured on a ssh config
-//file.
+// Resolver finds specific attributes of a ssh server configured on a ssh config
+// file.
 type Resolver struct {
 	sshConfig *ssh_config.Config
 }
 
-//NewResolver creates a new instance of Resolver based on the given ssh config
-//file path.
+// NewResolver creates a new instance of Resolver based on the given ssh config
+// file path.
 func NewResolver(configPath string) (*Resolver, error) {
 	f, err := os.Open(filepath.Clean(configPath))
 	if err != nil {
@@ -34,9 +34,9 @@ func NewResolver(configPath string) (*Resolver, error) {
 	return &Resolver{sshConfig: cfg}, nil
 }
 
-//Resolve consults a ssh config file to extract some ssh server attributes from
-//it, returning a ResolvedHost. Any attribute which its value is an empty
-//string is an attribute that could not be found in the ssh config file.
+// Resolve consults a ssh config file to extract some ssh server attributes
+// from it, returning a ResolvedHost. Any attribute which its value is an empty
+// string is an attribute that could not be found in the ssh config file.
 func (r Resolver) Resolve(host string) *ResolvedHost {
 	hostname := r.resolveHostname(host)
 
@@ -92,7 +92,7 @@ func (r Resolver) resolveKey(host string) string {
 	return ""
 }
 
-//ResolvedHost holds information extracted from a ssh config file.
+// ResolvedHost holds information extracted from a ssh config file.
 type ResolvedHost struct {
 	Hostname string
 	Port     string
@@ -100,7 +100,7 @@ type ResolvedHost struct {
 	Key      string
 }
 
-//String returns a string representation of a ResolvedHost.
+// String returns a string representation of a ResolvedHost.
 func (rh ResolvedHost) String() string {
 	return fmt.Sprintf("[hostname=%s, port=%s, user=%s, key=%s]", rh.Hostname, rh.Port, rh.User, rh.Key)
 }

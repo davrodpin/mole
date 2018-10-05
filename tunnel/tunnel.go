@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-//Server holds the SSH Server attributes used for the client to connect to it.
+// Server holds the SSH Server attributes used for the client to connect to it.
 type Server struct {
 	Name    string
 	Address string
@@ -23,9 +23,9 @@ type Server struct {
 	Key     string
 }
 
-//NewServer creates a new instance of Server using $HOME/.ssh/config to resolve
-//the missing connection attributes (e.g. user, hostname, port and key)
-//required to connect to the remote server, if any.
+// NewServer creates a new instance of Server using $HOME/.ssh/config to
+// resolve the missing connection attributes (e.g. user, hostname, port and
+// key) required to connect to the remote server, if any.
 func NewServer(user, address, key string) (*Server, error) {
 	var host string
 	var hostname string
@@ -86,13 +86,13 @@ func NewServer(user, address, key string) (*Server, error) {
 	}, nil
 }
 
-//String provided a string representation os a Server.
+// String provided a string representation os a Server.
 func (s Server) String() string {
 	return fmt.Sprintf("[name=%s, address=%s, user=%s, key=%s]", s.Name, s.Address, s.User, s.Key)
 }
 
-//Tunnel represents the ssh tunnel used to forward a local connection to a
-//a remote endpoint through a ssh server.
+// Tunnel represents the ssh tunnel used to forward a local connection to a
+// a remote endpoint through a ssh server.
 type Tunnel struct {
 	local  string
 	server *Server
@@ -100,7 +100,7 @@ type Tunnel struct {
 	done   chan error
 }
 
-//New creates a new instance of Tunnel
+// New creates a new instance of Tunnel.
 func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
 
 	if localAddress == "" {
@@ -115,8 +115,8 @@ func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
 	}
 }
 
-//Start creates a new ssh tunnel, allowing data exchange between the local and
-//remote endpoints.
+// Start creates a new ssh tunnel, allowing data exchange between the local and
+// remote endpoints.
 func (t *Tunnel) Start() error {
 	local, err := net.Listen("tcp", t.local)
 	if err != nil {
@@ -170,12 +170,12 @@ func (t *Tunnel) forward(localConn net.Conn) error {
 	return nil
 }
 
-//Stop cancels the tunnel, closing all connections.
+// Stop cancels the tunnel, closing all connections.
 func (t Tunnel) Stop() {
 	t.done <- nil
 }
 
-//String returns a string representation of a Tunnel.
+// String returns a string representation of a Tunnel.
 func (t Tunnel) String() string {
 	return fmt.Sprintf("[local:%s, server:%s, remote:%s]", t.local, t.server.Address, t.remote)
 }
