@@ -84,9 +84,9 @@ func (r Resolver) resolveKey(host string) string {
 	if id != "" {
 		if strings.HasPrefix(id, "~") {
 			return filepath.Join(os.Getenv("HOME"), id[1:])
-		} else {
-			return id
 		}
+
+		return id
 	}
 
 	return ""

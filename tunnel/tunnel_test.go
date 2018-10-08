@@ -91,7 +91,7 @@ func TestServerOptions(t *testing.T) {
 func TestTunnel(t *testing.T) {
 	expected := "ABC"
 	c := prepareTunnel(t)
-	client := newHttpClient(c)
+	client := newHTTPClient(c)
 
 	response, err := get(client, fmt.Sprintf("/%s", expected))
 	if err != nil {
@@ -164,19 +164,19 @@ func prepareTestEnv() {
 	sshDir = testDir
 
 	fixtures := []map[string]string{
-		map[string]string{
+		{
 			"from": filepath.Join(fixtureDir, "config"),
 			"to":   filepath.Join(testDir, "config"),
 		},
-		map[string]string{
+		{
 			"from": filepath.Join(fixtureDir, "id_rsa.pub"),
 			"to":   publicKeyPath,
 		},
-		map[string]string{
+		{
 			"from": filepath.Join(fixtureDir, "id_rsa"),
 			"to":   keyPath,
 		},
-		map[string]string{
+		{
 			"from": filepath.Join(fixtureDir, "id_rsa"),
 			"to":   filepath.Join(testDir, "other_key"),
 		},
@@ -191,9 +191,9 @@ func prepareTestEnv() {
 	os.Setenv("HOME", home)
 }
 
-// newHttpClient create an http client that will always use the given
+// newHTTPClient create an http client that will always use the given
 // connection to perform http requests.
-func newHttpClient(conn net.Conn) http.Client {
+func newHTTPClient(conn net.Conn) http.Client {
 	tr := &http.Transport{
 		Dial: func(network, address string) (net.Conn, error) {
 			return conn, nil
@@ -287,11 +287,11 @@ func createSSHServer(keyPath string) net.Addr {
 						payload := newChan.ExtraData()
 						pad := byte(4)
 						l := payload[3]
-						remoteIp := string(payload[pad : pad+l])
+						remoteIP := string(payload[pad : pad+l])
 						remotePort := binary.BigEndian.Uint32(payload[pad+l : pad+l+4])
 
 						conn, _, _ := newChan.Accept()
-						remoteConn, _ := net.Dial("tcp", fmt.Sprintf("%s:%d", remoteIp, remotePort))
+						remoteConn, _ := net.Dial("tcp", fmt.Sprintf("%s:%d", remoteIP, remotePort))
 
 						go func() {
 							io.Copy(conn, remoteConn)
