@@ -17,7 +17,7 @@ title: Mole
 email: davrodpin@gmail.com
 description: >-
   Easily create SSH tunnels.
-baseurl: "" # the subpath of your site, e.g. /blog
+baseurl: "/mole" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username:
 github_username:
