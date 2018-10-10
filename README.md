@@ -54,4 +54,24 @@ INFO[0000] listening on local address                    local_address="127.0.0.
 $ mole -remote 172.17.0.100:80 -server example1 
 INFO[0000] listening on local address                    local_address="127.0.0.1:61305"
 ```
+### Bind the local address to 127.0.0.1 by specifying only the local port
 
+```sh
+$ mole -v -local :8080 -remote 172.17.0.100:80 -server example1
+DEBU[0000] cli options                                   key= local="127.0.0.1:8080" remote="172.17.0.100:80" server=example1 v=true
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
+DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:172.17.0.100:80]
+INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+```
+
+### Connect to a remote ip address 127.0.0.1 by specifying only the remote port
+
+```sh
+$ mole -v -local 127.0.0.1:8080 -remote :80 -server example1
+DEBU[0000] cli options                                   key= local="127.0.0.1:8080" remote="127.0.0.1:80" server=example1 v=true
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
+DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:127.0.0.1:80]
+INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+```

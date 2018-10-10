@@ -86,7 +86,7 @@ func NewServer(user, address, key string) (*Server, error) {
 	}, nil
 }
 
-// String provided a string representation os a Server.
+// String provided a string representation of a Server.
 func (s Server) String() string {
 	return fmt.Sprintf("[name=%s, address=%s, user=%s, key=%s]", s.Name, s.Address, s.User, s.Key)
 }
@@ -105,6 +105,12 @@ func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
 
 	if localAddress == "" {
 		localAddress = "127.0.0.1:0"
+	} else if strings.HasPrefix(localAddress, ":") {
+		localAddress = fmt.Sprintf("127.0.0.1%s", localAddress)
+	}
+
+	if strings.HasPrefix(remoteAddress, ":") {
+		remoteAddress = fmt.Sprintf("127.0.0.1%s", remoteAddress)
 	}
 
 	return &Tunnel{

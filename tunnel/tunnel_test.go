@@ -31,11 +31,11 @@ func TestServerOptions(t *testing.T) {
 	}{
 		{
 			"mole_user",
-			"127.0.0.1:2222",
+			"172.17.0.10:2222",
 			"testdata/.ssh/id_rsa",
 			&Server{
-				Name:    "127.0.0.1",
-				Address: "127.0.0.1:2222",
+				Name:    "172.17.0.10",
+				Address: "172.17.0.10:2222",
 				User:    "mole_user",
 				Key:     "testdata/.ssh/id_rsa",
 			},
@@ -84,6 +84,65 @@ func TestServerOptions(t *testing.T) {
 		if !reflect.DeepEqual(test.expected, s) {
 			t.Errorf("unexpected result : expected: %s, result: %s", test.expected, s)
 		}
+	}
+
+}
+
+func TestTunnelOptions(t *testing.T) {
+	server := &Server{Name: "s"}
+	tests := []struct {
+		local    string
+		server   *Server
+		remote   string
+		expected *Tunnel
+	}{
+		{
+			"172.17.0.10:2222",
+			server,
+			"172.17.0.10:2222",
+			&Tunnel{
+				local:  "172.17.0.10:2222",
+				server: server,
+				remote: "172.17.0.10:2222",
+			},
+		},
+		{
+			"",
+			server,
+			"172.17.0.10:2222",
+			&Tunnel{
+				local:  "127.0.0.1:0",
+				server: server,
+				remote: "172.17.0.10:2222",
+			},
+		},
+		{
+			":8443",
+			server,
+			":443",
+			&Tunnel{
+				local:  "127.0.0.1:8443",
+				server: server,
+				remote: "127.0.0.1:443",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		tun := New(test.local, test.server, test.remote)
+
+		if test.expected.local != tun.local {
+			t.Errorf("unexpected local result : expected: %s, result: %s", test.expected, tun)
+		}
+
+		if test.expected.remote != tun.remote {
+			t.Errorf("unexpected remote result : expected: %s, result: %s", test.expected, tun)
+		}
+
+		if !reflect.DeepEqual(test.expected.server, tun.server) {
+			t.Errorf("unexpected server result : expected: %s, result: %s", test.expected, tun)
+		}
+
 	}
 
 }

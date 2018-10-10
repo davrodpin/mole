@@ -29,7 +29,7 @@ func (f hostFlag) String() string {
 }
 
 func (f *hostFlag) Set(value string) error {
-	re := regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z.-]+)(?P<port>:[0-9]+)?")
+	re := regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
 
 	match := re.FindStringSubmatch(value)
 	result := make(map[string]string)
@@ -39,10 +39,6 @@ func (f *hostFlag) Set(value string) error {
 		}
 
 		result[name] = match[i]
-	}
-
-	if result["host"] == "" {
-		return fmt.Errorf("error parsing argument. Host must be provided.")
 	}
 
 	f.User = strings.Trim(result["user"], "@")
@@ -73,11 +69,11 @@ var (
 )
 
 func init() {
-	flag.Var(&localFlag, "local", "set local endpoint address: <host>:<port>")
-	flag.Var(&remoteFlag, "remote", "set remote endpoing address: <host>:<port>")
+	flag.Var(&localFlag, "local", "(optional) Set local endpoint address: [<host>]:<port>")
+	flag.Var(&remoteFlag, "remote", "set remote endpoing address: [<host>]:<port>")
 	flag.Var(&serverFlag, "server", "set server address: [<user>@]<host>[:<port>]")
-	flag.StringVar(&keyFlag, "key", "", "set server authentication key file path")
-	flag.BoolVar(&vFlag, "v", false, "increase log verbosity")
+	flag.StringVar(&keyFlag, "key", "", "(optional) Set server authentication key file path")
+	flag.BoolVar(&vFlag, "v", false, "(optional) Increase log verbosity")
 	flag.BoolVar(&helpFlag, "help", false, "list all options available")
 	flag.BoolVar(&versionFlag, "version", false, "display the mole version")
 }
@@ -150,7 +146,7 @@ func handleCLIOptions() int {
 
 func usage() string {
 	return `usage:
-  mole [-v] [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+  mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
   mole -help
   mole -version
 	`
