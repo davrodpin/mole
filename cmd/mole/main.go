@@ -60,37 +60,33 @@ func (f hostFlag) Address() string {
 	return fmt.Sprintf("%s:%s", f.Host, f.Port)
 }
 
+var version = "unversioned"
+
 var (
-	localFlag  hostFlag
-	remoteFlag hostFlag
-	serverFlag hostFlag
-	keyFlag    string
-	vFlag      bool
-	helpFlag   bool
+	localFlag   hostFlag
+	remoteFlag  hostFlag
+	serverFlag  hostFlag
+	keyFlag     string
+	vFlag       bool
+	helpFlag    bool
+	versionFlag bool
 )
 
 func init() {
-	flag.Var(&localFlag, "local", "local endpoint address: <host>:<port>")
-	flag.Var(&remoteFlag, "remote", "remote endpoing address: <host>:<port>")
-	flag.Var(&serverFlag, "server", "server address: [<user>@]<host>[:<port>]")
-	flag.StringVar(&keyFlag, "key", "", "server authentication key file path")
-	flag.BoolVar(&vFlag, "v", false, "increases log verbosity")
+	flag.Var(&localFlag, "local", "set local endpoint address: <host>:<port>")
+	flag.Var(&remoteFlag, "remote", "set remote endpoing address: <host>:<port>")
+	flag.Var(&serverFlag, "server", "set server address: [<user>@]<host>[:<port>]")
+	flag.StringVar(&keyFlag, "key", "", "set server authentication key file path")
+	flag.BoolVar(&vFlag, "v", false, "increase log verbosity")
 	flag.BoolVar(&helpFlag, "help", false, "list all options available")
+	flag.BoolVar(&versionFlag, "version", false, "display the mole version")
 }
 
 func main() {
-	if len(os.Args[1:]) == 0 {
-		fmt.Printf("%s\n", usage())
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
 
-	flag.Parse()
-
-	if helpFlag {
-		fmt.Printf("%s\n", usage())
-		flag.PrintDefaults()
-		os.Exit(0)
+	code := handleCLIOptions()
+	if code > -1 {
+		os.Exit(code)
 	}
 
 	log.SetOutput(os.Stdout)
@@ -126,9 +122,36 @@ func main() {
 	}
 }
 
+// handleCLIOptions parses the options given through CLI returning the program
+// exit code.
+// The function returns -1 if there is no need to exit the program.
+func handleCLIOptions() int {
+	if len(os.Args[1:]) == 0 {
+		fmt.Printf("%s\n", usage())
+		flag.PrintDefaults()
+		return 1
+	}
+
+	flag.Parse()
+
+	if versionFlag {
+		fmt.Printf("mole %s\n", version)
+		return 0
+	}
+
+	if helpFlag {
+		fmt.Printf("%s\n", usage())
+		flag.PrintDefaults()
+		return 0
+	}
+
+	return -1
+}
+
 func usage() string {
 	return `usage:
   mole [-v] [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
   mole -help
+  mole -version
 	`
 }
