@@ -1,7 +1,9 @@
-package main
+package cli_test
 
 import (
 	"testing"
+
+	"github.com/davrodpin/mole/cli"
 )
 
 func TestHandleArgs(t *testing.T) {
@@ -22,14 +24,19 @@ func TestHandleArgs(t *testing.T) {
 			[]string{"./mole", "-remote", ":443", "-server", "example1"},
 			"new",
 		},
+		{
+			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
+			"new-alias",
+		},
 	}
 
-	var c cmd
+	var c *cli.App
+
 	for _, test := range tests {
-		c = cmd{}
-		c.Parse(test.args)
-		if test.expected != c.command {
-			t.Errorf("test failed. Expected: %s, value: %s", test.expected, c.command)
+		c = cli.New(test.args)
+		c.Parse()
+		if test.expected != c.Command {
+			t.Errorf("test failed. Expected: %s, value: %s", test.expected, c.Command)
 		}
 	}
 }

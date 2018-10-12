@@ -1,5 +1,3 @@
-.PHONY: bin
-
 LDFLAGS := -X main.version=$(version)
 
 .install:
@@ -14,4 +12,6 @@ endif
 	cd bin && tar c mole | gzip > mole$(version).linux-amd64.tar.gz && rm mole && cd -
 test:
 	@go test ./... -race -coverprofile=coverage.txt -covermode=atomic
+.cover: test
+	go tool cover -html=coverage.txt
 
