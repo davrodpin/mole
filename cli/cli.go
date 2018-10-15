@@ -10,18 +10,19 @@ import (
 var re *regexp.Regexp = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
 
 type App struct {
-	Command string
-	args    []string
-	flag    *flag.FlagSet
+	args []string
+	flag *flag.FlagSet
 
-	Local   hostFlag
-	Remote  hostFlag
-	Server  hostFlag
+	Command string
+	Local   HostInput
+	Remote  HostInput
+	Server  HostInput
 	Key     string
 	Verbose bool
-	help    bool
-	version bool
+	Help    bool
+	Version bool
 	Alias   string
+	Start   string
 }
 
 func New(args []string) *App {
@@ -32,13 +33,14 @@ func (c *App) Parse() error {
 	f := flag.NewFlagSet(usage(), flag.ExitOnError)
 
 	f.StringVar(&c.Alias, "alias", "", "Create a tunnel alias")
+	f.StringVar(&c.Start, "start", "", "Start a tunnel using a given alias")
 	f.Var(&c.Local, "local", "(optional) Set local endpoint address: [<host>]:<port>")
 	f.Var(&c.Remote, "remote", "set remote endpoing address: [<host>]:<port>")
 	f.Var(&c.Server, "server", "set server address: [<user>@]<host>[:<port>]")
 	f.StringVar(&c.Key, "key", "", "(optional) Set server authentication key file path")
 	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
-	f.BoolVar(&c.help, "help", false, "list all options available")
-	f.BoolVar(&c.version, "version", false, "display the mole version")
+	f.BoolVar(&c.Help, "help", false, "list all options available")
+	f.BoolVar(&c.Version, "version", false, "display the mole version")
 
 	f.Parse(c.args[1:])
 
@@ -48,61 +50,72 @@ func (c *App) Parse() error {
 		return fmt.Errorf("not enough arguments provided")
 	}
 
-	if c.help {
+	if c.Help {
 		c.Command = "help"
-	} else if c.version {
+	} else if c.Version {
 		c.Command = "version"
 	} else if c.Alias != "" {
 		c.Command = "new-alias"
+	} else if c.Start != "" {
+		c.Command = "start-from-alias"
+		c.Alias = c.Start
 	} else {
-		c.Command = "new"
+		c.Command = "start"
 	}
 
 	return nil
 }
 
+// PrintUsage prints, to the standard output, the informational text on how to
+// use the tool.
 func (c App) PrintUsage() {
 	fmt.Printf("%s\n", usage())
 	c.flag.PrintDefaults()
 }
 
+// String returns a string representation of an App.
 func (c App) String() string {
 	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t]",
-		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.help, c.version)
+		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version)
 }
 
-type hostFlag struct {
+// HostInput holds information about a host
+type HostInput struct {
 	User string
 	Host string
 	Port string
 }
 
-func (f hostFlag) String() string {
+// String returns a string representation of a HostInput
+func (h HostInput) String() string {
 	var s string
-	if f.User == "" {
-		s = f.Address()
+	if h.User == "" {
+		s = h.Address()
 	} else {
-		s = fmt.Sprintf("%s@%s", f.User, f.Address())
+		s = fmt.Sprintf("%s@%s", h.User, h.Address())
 	}
 
 	return s
 }
 
-func (f *hostFlag) Set(value string) error {
+// Set parses a string representation of HostInput into its proper attributes.
+func (h *HostInput) Set(value string) error {
 	result := parseServerInput(value)
-	f.User = strings.Trim(result["user"], "@")
-	f.Host = result["host"]
-	f.Port = strings.Trim(result["port"], ":")
+	h.User = strings.Trim(result["user"], "@")
+	h.Host = result["host"]
+	h.Port = strings.Trim(result["port"], ":")
 
 	return nil
 }
 
-func (f hostFlag) Address() string {
-	if f.Port == "" {
-		return fmt.Sprintf("%s", f.Host)
+// Address returns a string representation of HostInput to be used to perform
+// network connections.
+func (h HostInput) Address() string {
+	if h.Port == "" {
+		return fmt.Sprintf("%s", h.Host)
 	}
 
-	return fmt.Sprintf("%s:%s", f.Host, f.Port)
+	return fmt.Sprintf("%s:%s", h.Host, h.Port)
 }
 
 func usage() string {
@@ -110,7 +123,6 @@ func usage() string {
   mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
   mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
   mole -start <alias_name>
-	mole -alias <alias_name> -delete
   mole -help
   mole -version
 	`
