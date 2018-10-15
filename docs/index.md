@@ -10,7 +10,23 @@ layout: default
   * [Auto local address selection](#let-mole-to-randomly-select-the-local-endpoint): find a port available and start linstening to it, so the `-local` flag doesn't need to be given every time you run the app.
   * [Aliases](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards): save your tunnel settings under an alias, so it can be reused later.
   * Leverage the SSH Config File: use some options (e.g. user name, identity key and port), specified in *$HOME/.ssh/config* whenever possible, so there is no need to have the same SSH server configuration in multiple places.
-  
+
+# Table of Contents
+
+* [Use Cases](#use-cases)
+  * [Access a computer or service behind a firewall](#access-a-computer-or-service-behind-a-firewall)
+  * [Access a service that is listening only on a local address](#access-a-service-that-is-listening-only-on-a-local-address)
+* [Installation](#installation)
+  * [macOS](#macOS)
+  * [Linux](#linux)
+* [Usage](#usage)
+* [Examples](#examples)
+  * [Provide all supported options](#provide-all-supported-options)
+  * [Use the ssh config file to lookup a given server host](#use-the-ssh-config-file-to-lookup-a-given-server-host)
+  * [Let mole to randomly select the local endpoint](#let-mole-to-randomly-select-the-local-endpoint)
+  * [Connect to a remote service that is running on 127.0.0.1 by specifying only the remote port](#connect-to-a-remote-service-that-is-running-on-127001-by-specifying-only-the-remote-port)
+  * [Create an alias, so there is no need to remember the tunnel settings afterwards](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards)
+
 # Use Cases
 
 _...or why on Earth would I need something like this?_
@@ -98,7 +114,7 @@ brew tap davrodpin/homebrew-mole && brew install mole
 ## Linux
 
 ```sh
-curl -L https://github.com/davrodpin/mole/releases/download/v0.1.0/mole0.1.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
+curl -L https://github.com/davrodpin/mole/releases/download/v0.2.0/mole0.2.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
 ```
 
 # Usage

@@ -21,7 +21,7 @@ brew tap davrodpin/homebrew-mole && brew install mole
 ### Linux
 
 ```sh
-curl -L https://github.com/davrodpin/mole/releases/download/v0.1.0/mole0.1.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
+curl -L https://github.com/davrodpin/mole/releases/download/v0.2.0/mole0.2.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
 ```
 
 ## How to use
