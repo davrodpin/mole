@@ -59,6 +59,25 @@ func FindByName(name string) (*Tunnel, error) {
 	return tun, nil
 }
 
+func Remove(name string) (*Tunnel, error) {
+	store, err := loadStore()
+	if err != nil {
+		return nil, fmt.Errorf("error while loading mole configuration: %v", err)
+	}
+
+	tun := store.Tunnels[name]
+
+	if tun != nil {
+		delete(store.Tunnels, name)
+		_, err := createStore(store)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tun, nil
+}
+
 func loadStore() (*Store, error) {
 	var store *Store
 

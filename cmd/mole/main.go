@@ -42,6 +42,12 @@ func main() {
 		if err != nil {
 			os.Exit(1)
 		}
+	case "rm-alias":
+		err := rmAlias(*app)
+		if err != nil {
+			os.Exit(1)
+		}
+
 	}
 }
 
@@ -97,6 +103,15 @@ func newAlias(app cli.App) error {
 			"alias": app.Alias,
 		}).Errorf("alias could not be created: %v", err)
 
+		return err
+	}
+
+	return nil
+}
+
+func rmAlias(app cli.App) error {
+	_, err := storage.Remove(app.Alias)
+	if err != nil {
 		return err
 	}
 

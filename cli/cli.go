@@ -13,16 +13,17 @@ type App struct {
 	args []string
 	flag *flag.FlagSet
 
-	Command string
-	Local   HostInput
-	Remote  HostInput
-	Server  HostInput
-	Key     string
-	Verbose bool
-	Help    bool
-	Version bool
-	Alias   string
-	Start   string
+	Command     string
+	Local       HostInput
+	Remote      HostInput
+	Server      HostInput
+	Key         string
+	Verbose     bool
+	Help        bool
+	Version     bool
+	Alias       string
+	Start       string
+	AliasDelete bool
 }
 
 func New(args []string) *App {
@@ -33,6 +34,7 @@ func (c *App) Parse() error {
 	f := flag.NewFlagSet(usage(), flag.ExitOnError)
 
 	f.StringVar(&c.Alias, "alias", "", "Create a tunnel alias")
+	f.BoolVar(&c.AliasDelete, "delete", false, "delete a tunnel alias (must be used with -alias)")
 	f.StringVar(&c.Start, "start", "", "Start a tunnel using a given alias")
 	f.Var(&c.Local, "local", "(optional) Set local endpoint address: [<host>]:<port>")
 	f.Var(&c.Remote, "remote", "set remote endpoing address: [<host>]:<port>")
@@ -54,6 +56,8 @@ func (c *App) Parse() error {
 		c.Command = "help"
 	} else if c.Version {
 		c.Command = "version"
+	} else if c.Alias != "" && c.AliasDelete {
+		c.Command = "rm-alias"
 	} else if c.Alias != "" {
 		c.Command = "new-alias"
 	} else if c.Start != "" {
@@ -122,6 +126,7 @@ func usage() string {
 	return `usage:
   mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
   mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+  mole -alias <alias_name> -delete
   mole -start <alias_name>
   mole -help
   mole -version
