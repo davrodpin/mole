@@ -214,6 +214,8 @@ func start(app cli.App) error {
 		return err
 	}
 
+	s.SetInsecureMode(app.InsecureMode)
+
 	log.Debugf("server: %s", s)
 
 	t := tunnel.New(app.Local.String(), s, app.Remote.String())

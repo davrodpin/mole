@@ -15,20 +15,21 @@ type App struct {
 	args []string
 	flag *flag.FlagSet
 
-	Command     string
-	Local       HostInput
-	Remote      HostInput
-	Server      HostInput
-	Key         string
-	Verbose     bool
-	Help        bool
-	Version     bool
-	Alias       string
-	Start       string
-	AliasDelete bool
-	Detach      bool
-	Stop        string
-	AliasList   bool
+	Command      string
+	Local        HostInput
+	Remote       HostInput
+	Server       HostInput
+	Key          string
+	Verbose      bool
+	Help         bool
+	Version      bool
+	Alias        string
+	Start        string
+	AliasDelete  bool
+	Detach       bool
+	Stop         string
+	AliasList    bool
+	InsecureMode bool
 }
 
 // New creates a new instance of App.
@@ -55,6 +56,8 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.Version, "version", false, "display the mole version")
 	f.BoolVar(&c.Detach, "detach", false, "(optional) run process in background")
 	f.StringVar(&c.Stop, "stop", "", "stop background process")
+	f.BoolVar(&c.InsecureMode, "insecure", false, "(optional) ignore unknown host keys when connecting to an ssh server")
+
 	f.Parse(c.args[1:])
 
 	if c.Help {
