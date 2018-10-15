@@ -13,17 +13,18 @@ type App struct {
 	args []string
 	flag *flag.FlagSet
 
-	Command     string
-	Local       HostInput
-	Remote      HostInput
-	Server      HostInput
-	Key         string
-	Verbose     bool
-	Help        bool
-	Version     bool
-	Alias       string
-	Start       string
-	AliasDelete bool
+	Command      string
+	Local        HostInput
+	Remote       HostInput
+	Server       HostInput
+	Key          string
+	Verbose      bool
+	Help         bool
+	Version      bool
+	Alias        string
+	Start        string
+	AliasDelete  bool
+	InsecureMode bool
 }
 
 func New(args []string) *App {
@@ -43,6 +44,7 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
 	f.BoolVar(&c.Help, "help", false, "list all options available")
 	f.BoolVar(&c.Version, "version", false, "display the mole version")
+	f.BoolVar(&c.InsecureMode, "insecure", false, "(optional) ignore unknown host keys when connecting to an ssh server")
 
 	f.Parse(c.args[1:])
 
