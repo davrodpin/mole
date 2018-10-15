@@ -59,6 +59,9 @@ func (c *App) Parse() error {
 	} else if c.Alias != "" && c.AliasDelete {
 		c.Command = "rm-alias"
 	} else if c.Alias != "" {
+		if c.Server.String() == "" || c.Remote.String() == "" {
+			return fmt.Errorf("you need to specify server and remote")
+		}
 		c.Command = "new-alias"
 	} else if c.Start != "" {
 		c.Command = "start-from-alias"
