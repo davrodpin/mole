@@ -4,10 +4,13 @@ layout: default
 
 **Mole** is a _cli_ application to create _ssh_ tunnels, forwarding a local port to a remote address through a _ssh_ server.
 
-It tries to leverage the user's ssh config file, *$HOME/.ssh/config*, to find
-options to be used to connect to the ssh server when those options are not
-given (e.g. user name, identity key path and port).
 
+**Highlighted Features**
+
+  * [Auto local address selection](#let-mole-to-randomly-select-the-local-endpoint): find a port available and start linstening to it, so the `-local` flag doesn't need to be given every time you run the app.
+  * [Aliases](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards): save your tunnel settings under an alias, so it can be reused later.
+  * Leverage the SSH Config File: use some options (e.g. user name, identity key and port), specified in *$HOME/.ssh/config* whenever possible, so there is no need to have the same SSH server configuration in multiple places.
+  
 # Use Cases
 
 _...or why on Earth would I need something like this?_
@@ -175,7 +178,7 @@ DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:172.17.0
 INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
 ```
 
-### Connect to a remote ip address 127.0.0.1 by specifying only the remote port
+### Connect to a remote service that is running on 127.0.0.1 by specifying only the remote port
 
 ```sh
 $ mole -v -local 127.0.0.1:8080 -remote :80 -server example1
