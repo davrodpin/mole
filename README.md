@@ -21,10 +21,19 @@ brew tap davrodpin/homebrew-mole && brew install mole
 ### Linux
 
 ```sh
-curl -L https://github.com/davrodpin/mole/releases/download/v0.0.1/mole0.0.1.linux-amd64.tar.gz | tar xz -C /usr/local/bin
+curl -L https://github.com/davrodpin/mole/releases/download/v0.1.0/mole0.1.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
 ```
 
 ## How to use
+
+```sh
+$ mole -v -remote :443 -server user@example.com
+DEBU[0000] cli options                                   options="[local=, remote=:443, server=user@example.com, key=, verbose=true, help=false, version=false]"
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
+DEBU[0000] tunnel: [local:127.0.0.1:63046, server:example.com:22, remote:127.0.0.1:443]
+INFO[0000] listening on local address                    local_address="127.0.0.1:63046"
+```
 
 ```sh
 $ mole -v -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -key ~/.ssh/id_rsa
@@ -33,4 +42,14 @@ DEBU[0000] using ssh config file from: /home/mole/.ssh/config
 DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
 DEBU[0000] tunnel: [local:127.0.0.1:8080, server:example.com:22, remote:172.17.0.100:80]
 INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+```
+
+```sh
+$ mole -alias example1 -v -local :8443 -remote :443 -server user@example.com
+$ mole -start example1
+DEBU[0000] cli options                                   options="[local=:8443, remote=:443, server=user@example.com, key=, verbose=true, help=false, version=false]"
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
+DEBU[0000] tunnel: [local:127.0.0.1:8443, server:example.com:22, remote:127.0.0.1:443]
+INFO[0000] listening on local address                    local_address="127.0.0.1:8443"
 ```

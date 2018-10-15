@@ -50,7 +50,13 @@ func FindByName(name string) (*Tunnel, error) {
 		return nil, fmt.Errorf("error while loading mole configuration: %v", err)
 	}
 
-	return store.Tunnels[name], nil
+	tun := store.Tunnels[name]
+
+	if tun == nil {
+		return nil, fmt.Errorf("alias could not be found: %s", name)
+	}
+
+	return tun, nil
 }
 
 func loadStore() (*Store, error) {

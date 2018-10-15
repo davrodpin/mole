@@ -22,11 +22,15 @@ func TestHandleArgs(t *testing.T) {
 		},
 		{
 			[]string{"./mole", "-remote", ":443", "-server", "example1"},
-			"new",
+			"start",
 		},
 		{
 			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
 			"new-alias",
+		},
+		{
+			[]string{"./mole", "-start", "example1-alias"},
+			"start-from-alias",
 		},
 	}
 

@@ -95,7 +95,7 @@ brew tap davrodpin/homebrew-mole && brew install mole
 ## Linux
 
 ```sh
-curl -L https://github.com/davrodpin/mole/releases/download/v0.0.1/mole0.0.1.linux-amd64.tar.gz | tar xz -C /usr/local/bin
+curl -L https://github.com/davrodpin/mole/releases/download/v0.1.0/mole0.1.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
 ```
 
 # Usage
@@ -103,20 +103,29 @@ curl -L https://github.com/davrodpin/mole/releases/download/v0.0.1/mole0.0.1.lin
 ```sh
 $ mole -help
 usage:
-  mole [-v] [-local <host>:<port>] -remote <host>:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+  mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+  mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+  mole -start <alias_name>
   mole -help
+  mole -version
 
+  -alias string
+        Create a tunnel alias
   -help
         list all options available
   -key string
-        server authentication key file path
+        (optional) Set server authentication key file path
   -local value
-        local endpoint address: <host>:<port>
+        (optional) Set local endpoint address: [<host>]:<port>
   -remote value
-        remote endpoing address: <host>:<port>
+        set remote endpoing address: [<host>]:<port>
   -server value
-        server address: [<user>@]<host>[:<port>]
-  -v    increases log verbosity
+        set server address: [<user>@]<host>[:<port>]
+  -start string
+        Start a tunnel using a given alias
+  -v    (optional) Increase log verbosity
+  -version
+        display the mole version
 ```  
 
 ## Examples
@@ -175,4 +184,16 @@ DEBU[0000] using ssh config file from: /home/mole/.ssh/config
 DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
 DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:127.0.0.1:80]
 INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+```
+
+### Create an alias, so there is no need to remember the tunnel settings afterwards
+
+```sh
+$ mole -alias example1 -v -local :8443 -remote :443 -server user@example.com
+$ mole -start example1
+DEBU[0000] cli options                                   options="[local=:8443, remote=:443, server=user@example.com, key=, verbose=true, help=false, version=false]"
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
+DEBU[0000] tunnel: [local:127.0.0.1:8443, server:example.com:22, remote:127.0.0.1:443]
+INFO[0000] listening on local address                    local_address="127.0.0.1:8443"
 ```
