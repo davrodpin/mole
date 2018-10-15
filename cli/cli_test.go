@@ -29,6 +29,10 @@ func TestHandleArgs(t *testing.T) {
 			"new-alias",
 		},
 		{
+			[]string{"./mole", "-alias", "xyz", "-delete"},
+			"rm-alias",
+		},
+		{
 			[]string{"./mole", "-start", "example1-alias"},
 			"start-from-alias",
 		},

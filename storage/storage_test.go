@@ -10,11 +10,11 @@ import (
 )
 
 func TestSaveTunnel(t *testing.T) {
-	alias := "hpe-halon-443"
+	alias := "example-save-443"
 	expected := &storage.Tunnel{
 		Local:   "",
 		Remote:  ":443",
-		Server:  "hpe-halon",
+		Server:  "example",
 		Verbose: true,
 	}
 
@@ -31,6 +31,33 @@ func TestSaveTunnel(t *testing.T) {
 	if !reflect.DeepEqual(expected, value) {
 		t.Errorf("Test failed.\n\texpected: %s\n\tvalue   : %s", expected, value)
 	}
+}
+
+func TestRemoveTunnel(t *testing.T) {
+	alias := "example-rm-443"
+	expected := &storage.Tunnel{
+		Local:   "",
+		Remote:  ":443",
+		Server:  "example",
+		Verbose: true,
+	}
+
+	storage.Save(alias, expected)
+	value, err := storage.Remove(alias)
+	if err != nil {
+		t.Errorf("Test failed while removing tunnel configuration: %v", err)
+	}
+
+	if !reflect.DeepEqual(expected, value) {
+		t.Errorf("Test failed.\n\texpected: %s\n\tvalue   : %s", expected, value)
+	}
+
+	value, _ = storage.FindByName(alias)
+
+	if value != nil {
+		t.Errorf("Test failed. Alias %s is not suppose to exist after deletion.", alias)
+	}
+
 }
 
 func TestMain(m *testing.M) {
