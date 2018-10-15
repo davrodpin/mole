@@ -30,6 +30,10 @@ func New(args []string) *App {
 	return &App{args: args}
 }
 
+func Dummy() string {
+	return ":)"
+}
+
 func (c *App) Parse() error {
 	f := flag.NewFlagSet(usage(), flag.ExitOnError)
 
