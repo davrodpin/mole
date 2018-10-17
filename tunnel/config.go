@@ -10,15 +10,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Resolver finds specific attributes of a ssh server configured on a ssh config
-// file.
-type Resolver struct {
+// SSHConfigFile finds specific attributes of a ssh server configured on a
+// ssh config file.
+type SSHConfigFile struct {
 	sshConfig *ssh_config.Config
 }
 
-// NewResolver creates a new instance of Resolver based on the given ssh config
-// file path.
-func NewResolver(configPath string) (*Resolver, error) {
+// NewSSHConfigFile creates a new instance of SSHConfigFile based on the given
+// ssh config file path.
+func NewSSHConfigFile(configPath string) (*SSHConfigFile, error) {
 	f, err := os.Open(filepath.Clean(configPath))
 	if err != nil {
 		return nil, err
@@ -31,14 +31,14 @@ func NewResolver(configPath string) (*Resolver, error) {
 
 	log.Debugf("using ssh config file from: %s", configPath)
 
-	return &Resolver{sshConfig: cfg}, nil
+	return &SSHConfigFile{sshConfig: cfg}, nil
 }
 
-// Resolve consults a ssh config file to extract some ssh server attributes
-// from it, returning a ResolvedHost. Any attribute which its value is an empty
+// Get consults a ssh config file to extract some ssh server attributes
+// from it, returning a SSHHost. Any attribute which its value is an empty
 // string is an attribute that could not be found in the ssh config file.
-func (r Resolver) Resolve(host string) *ResolvedHost {
-	hostname := r.resolveHostname(host)
+func (r SSHConfigFile) Get(host string) *SSHHost {
+	hostname := r.getHostname(host)
 
 	port, err := r.sshConfig.Get(host, "Port")
 	if err != nil {
@@ -50,9 +50,9 @@ func (r Resolver) Resolve(host string) *ResolvedHost {
 		user = ""
 	}
 
-	key := r.resolveKey(host)
+	key := r.getKey(host)
 
-	return &ResolvedHost{
+	return &SSHHost{
 		Hostname: hostname,
 		Port:     port,
 		User:     user,
@@ -60,7 +60,7 @@ func (r Resolver) Resolve(host string) *ResolvedHost {
 	}
 }
 
-func (r Resolver) resolveHostname(host string) string {
+func (r SSHConfigFile) getHostname(host string) string {
 	hostname, err := r.sshConfig.Get(host, "Hostname")
 
 	if err != nil {
@@ -74,7 +74,7 @@ func (r Resolver) resolveHostname(host string) string {
 	return hostname
 }
 
-func (r Resolver) resolveKey(host string) string {
+func (r SSHConfigFile) getKey(host string) string {
 	id, err := r.sshConfig.Get(host, "IdentityFile")
 
 	if err != nil {
@@ -92,15 +92,15 @@ func (r Resolver) resolveKey(host string) string {
 	return ""
 }
 
-// ResolvedHost holds information extracted from a ssh config file.
-type ResolvedHost struct {
+// SSHHost represents a host configuration extracted from a ssh config file.
+type SSHHost struct {
 	Hostname string
 	Port     string
 	User     string
 	Key      string
 }
 
-// String returns a string representation of a ResolvedHost.
-func (rh ResolvedHost) String() string {
-	return fmt.Sprintf("[hostname=%s, port=%s, user=%s, key=%s]", rh.Hostname, rh.Port, rh.User, rh.Key)
+// String returns a string representation of a SSHHost.
+func (h SSHHost) String() string {
+	return fmt.Sprintf("[hostname=%s, port=%s, user=%s, key=%s]", h.Hostname, h.Port, h.User, h.Key)
 }

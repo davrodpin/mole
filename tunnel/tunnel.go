@@ -42,16 +42,16 @@ func NewServer(user, address, key string) (*Server, error) {
 	if _, err := os.Stat(c); err != nil {
 		hostname = host
 	} else {
-		r, err := NewResolver(c)
+		c, err := NewSSHConfigFile(c)
 		if err != nil {
-			return nil, fmt.Errorf("error accessing %s: %v", c, err)
+			return nil, fmt.Errorf("error accessing %s: %v", host, err)
 		}
 
-		rh := r.Resolve(host)
-		hostname = reconcileHostname(host, rh.Hostname)
-		port = reconcilePort(port, rh.Port)
-		user = reconcileUser(user, rh.User)
-		key = reconcileKey(key, rh.Key)
+		h := c.Get(host)
+		hostname = reconcileHostname(host, h.Hostname)
+		port = reconcilePort(port, h.Port)
+		user = reconcileUser(user, h.User)
+		key = reconcileKey(key, h.Key)
 	}
 
 	if host == "" {
