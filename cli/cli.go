@@ -1,10 +1,13 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/go-ozzo/ozzo-validation"
 )
 
 var re *regexp.Regexp = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
@@ -59,15 +62,27 @@ func (c *App) Parse() error {
 	} else if c.Alias != "" && c.AliasDelete {
 		c.Command = "rm-alias"
 	} else if c.Alias != "" {
-		if c.Server.String() == "" || c.Remote.String() == "" {
-			return fmt.Errorf("you need to specify server and remote")
-		}
 		c.Command = "new-alias"
 	} else if c.Start != "" {
 		c.Command = "start-from-alias"
 		c.Alias = c.Start
 	} else {
 		c.Command = "start"
+	}
+
+	err := c.Validate()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c App) Validate() error {
+	if c.Command == "new-alias" {
+		return validation.ValidateStruct(&c,
+			validation.Field(&c.Server, validation.By(checkHostInput)),
+			validation.Field(&c.Remote, validation.By(checkHostInput)))
 	}
 
 	return nil
@@ -148,4 +163,12 @@ func parseServerInput(input string) map[string]string {
 	}
 
 	return result
+}
+
+func checkHostInput(value interface{}) error {
+	if value.(HostInput).String() == "" {
+		return errors.New("is required")
+	}
+
+	return nil
 }
