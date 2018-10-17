@@ -73,7 +73,7 @@ NOTE: _Server and Remote Computer could potentially be the same machine._
 $ mole \
   -local 127.0.0.1:3306 \
   -remote 127.0.0.1:3306 \
-  -server example@172.12.0.100
+  -server example@172.17.0.100
 ```
 
 ```ascii
