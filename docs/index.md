@@ -7,7 +7,7 @@ layout: default
 
 **Highlighted Features**
 
-  * [Auto local address selection](#let-mole-to-randomly-select-the-local-endpoint): find a port available and start linstening to it, so the `-local` flag doesn't need to be given every time you run the app.
+  * [Auto local address selection](#let-mole-to-randomly-select-the-local-endpoint): find a port available and start listening to it, so the `-local` flag doesn't need to be given every time you run the app.
   * [Aliases](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards): save your tunnel settings under an alias, so it can be reused later.
   * Leverage the SSH Config File: use some options (e.g. user name, identity key and port), specified in *$HOME/.ssh/config* whenever possible, so there is no need to have the same SSH server configuration in multiple places.
 
@@ -140,7 +140,7 @@ usage:
   -local value
         (optional) Set local endpoint address: [<host>]:<port>
   -remote value
-        set remote endpoing address: [<host>]:<port>
+        set remote endpoint address: [<host>]:<port>
   -server value
         set server address: [<user>@]<host>[:<port>]
   -start string
