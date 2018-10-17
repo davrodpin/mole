@@ -37,7 +37,7 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.AliasDelete, "delete", false, "delete a tunnel alias (must be used with -alias)")
 	f.StringVar(&c.Start, "start", "", "Start a tunnel using a given alias")
 	f.Var(&c.Local, "local", "(optional) Set local endpoint address: [<host>]:<port>")
-	f.Var(&c.Remote, "remote", "set remote endpoing address: [<host>]:<port>")
+	f.Var(&c.Remote, "remote", "set remote endpoint address: [<host>]:<port>")
 	f.Var(&c.Server, "server", "set server address: [<user>@]<host>[:<port>]")
 	f.StringVar(&c.Key, "key", "", "(optional) Set server authentication key file path")
 	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
