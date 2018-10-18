@@ -3,17 +3,22 @@
 repository="davrodpin/mole"
 install_path="/usr/local/bin"
 
-latest_version=$(curl --silent "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+# Get the os architecture
+os_arch=$(uname -m)
 
-# Get the os type
-os_type=$(uname -sm)
+# Check if architecture is supported
+if [ "${os_arch,,}" != "x86_64" ]; then
+	echo "The ${os_arch} architecture is not supported"
+	exit 1
+fi
 
-# Extract the first part of os_type (Linux/Darwin)
-os_type=${os_type% *}
+# Get the OS type
+os_type=$(uname -s)
 
 # Convert os_type to lowercase
 os_type=${os_type,,}
 
+latest_version=$(curl --silent "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 filename="mole${latest_version#v}.${os_type}-amd64.tar.gz"
 
 download_link="https://github.com/${repository}/releases/download/${latest_version}/${filename}"
