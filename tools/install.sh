@@ -21,9 +21,9 @@ os_type=$(uname -s)
 os_type=${os_type,,}
 
 # Get latest version of mole available
-latest_version=$(curl --silent --location "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+latest_version=$(curl --silent --location --max-time 60 "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 if [ $? -ne 0 ]; then
-	echo -ne "There was an error trying to check what is the latest version of mole.\nPlease try again later.\n"
+	echo -ne "\nThere was an error trying to check what is the latest version of mole.\nPlease try again later.\n"
 	exit 1
 fi
 
@@ -31,16 +31,16 @@ filename="mole${latest_version#v}.${os_type}-amd64.tar.gz"
 download_link="https://github.com/${repository}/releases/download/${latest_version}/${filename}"
 
 # Download latest version of mole available
-curl --location "${download_link}" -o "${temporary_file}"
+curl --location --max-time 60 "${download_link}" -o "${temporary_file}"
 if [ $? -ne 0 ]; then
-	echo -ne "There was an error trying download the latest version of mole.\nPlease try again later.\n"
+	echo -ne "\nThere was an error trying download the latest version of mole.\nPlease try again later.\n"
 	exit 1
 fi
 
 # Extract the downloaded mole.tar.gz
 sudo tar -xzf "${temporary_file}" -C "${install_path}"
 if [ $? -ne 0 ]; then
-	echo -ne "There was an error trying extract the latest version of mole.\nPlease try again later.\n"
+	echo -ne "\nThere was an error trying extract the latest version of mole.\nPlease try again later.\n"
 	exit 1
 fi
 
