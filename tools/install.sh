@@ -16,7 +16,7 @@ os_type=${os_type,,}
 
 filename="mole${latest_version#v}.${os_type}-amd64.tar.gz"
 
-download_link="https://github.com/davrodpin/mole/releases/download/${latest_version}/${filename}"
+download_link="https://github.com/${repository}/releases/download/${latest_version}/${filename}"
 
 curl -L "${download_link}" | sudo tar xz -C "${install_path}"
 
