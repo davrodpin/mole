@@ -4,6 +4,10 @@ layout: default
 
 **Mole** is a _cli_ application to create _ssh_ tunnels, forwarding a local port to a remote address through a _ssh_ server.
 
+```sh
+$ mole -remote :3306 -server my-database-server
+INFO[0000] listening on local address                    local_address="127.0.0.1:51082"
+```
 
 **Highlighted Features**
 
