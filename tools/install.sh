@@ -26,6 +26,7 @@ set -o pipefail
 
 repository="davrodpin/mole"
 install_path="/usr/local/bin"
+curl_timeout_seconds=60
 
 # Get the os architecture
 os_arch=$(uname -m)
@@ -40,7 +41,7 @@ fi
 os_type=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 # Get latest version of mole available
-latest_version=$(curl --silent --location --max-time 60 "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+	latest_version=$(curl --silent --location --max-time "${curl_timeout_seconds}" "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 if [ $? -ne 0 ]; then
 	echo -ne "\nThere was an error trying to check what is the latest version of mole.\nPlease try again later.\n"
 	exit 1
@@ -49,7 +50,7 @@ fi
 filename="mole${latest_version#v}.${os_type}-amd64.tar.gz"
 download_link="https://github.com/${repository}/releases/download/${latest_version}/${filename}"
 
-curl --location --max-time 60 "${download_link}" | sudo tar -xz -C "${install_path}" || {
+curl --location --max-time "${curl_timeout_seconds}" "${download_link}" | sudo tar -xz -C "${install_path}" || {
 	echo -ne "\nThere was an error trying to install the latest version of mole.\nPlease try again later.\n"
 	exit 1
 }
