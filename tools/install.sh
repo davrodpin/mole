@@ -15,10 +15,7 @@ if [ "${os_arch,,}" != "x86_64" ]; then
 fi
 
 # Get the OS type
-os_type=$(uname -s)
-
-# Convert os_type to lowercase
-os_type=${os_type,,}
+os_type=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 # Get latest version of mole available
 latest_version=$(curl --silent --location --max-time 60 "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
