@@ -67,6 +67,19 @@ func (c *App) Parse() error {
 		c.Command = "start"
 	}
 
+	err := c.Validate()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c App) Validate() error {
+	if c.Command == "new-alias" && c.Remote.String() == "" || c.Server.String() == "" {
+		return fmt.Errorf("remote and server options are required for new alias")
+	}
+
 	return nil
 }
 
