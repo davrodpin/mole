@@ -3,7 +3,6 @@ set -o pipefail
 
 repository="davrodpin/mole"
 install_path="/usr/local/bin"
-temporary_file="/tmp/mole.tar.gz"
 
 # Get the os architecture
 os_arch=$(uname -m)
@@ -27,18 +26,9 @@ fi
 filename="mole${latest_version#v}.${os_type}-amd64.tar.gz"
 download_link="https://github.com/${repository}/releases/download/${latest_version}/${filename}"
 
-# Download latest version of mole available
-curl --location --max-time 60 "${download_link}" -o "${temporary_file}"
-if [ $? -ne 0 ]; then
-	echo -ne "\nThere was an error trying download the latest version of mole.\nPlease try again later.\n"
+curl --location --max-time 60 "${download_link}" | sudo tar -xz -C "${install_path}" || {
+	echo -ne "\nThere was an error trying to install the latest version of mole.\nPlease try again later.\n"
 	exit 1
-fi
-
-# Extract the downloaded mole.tar.gz
-sudo tar -xzf "${temporary_file}" -C "${install_path}"
-if [ $? -ne 0 ]; then
-	echo -ne "\nThere was an error trying extract the latest version of mole.\nPlease try again later.\n"
-	exit 1
-fi
+}
 
 echo -ne "\nmole ${latest_version} installed succesfully on ${install_path}\n"
