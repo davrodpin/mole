@@ -29,10 +29,10 @@ install_path="/usr/local/bin"
 curl_timeout_seconds=60
 
 # Get the os architecture
-os_arch=$(uname -m)
+os_arch=$(uname -m | tr '[:upper:]' '[:lower:]')
 
 # Check if architecture is supported
-if [ "${os_arch,,}" != "x86_64" ]; then
+if [ "${os_arch}" != "x86_64" ]; then
 	echo "The ${os_arch} architecture is not supported"
 	exit 1
 fi
