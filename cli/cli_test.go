@@ -48,3 +48,42 @@ func TestHandleArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestValidate(t *testing.T) {
+
+	tests := []struct {
+		args     []string
+		expected bool
+	}{
+		{
+			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "-alias", "xyz", "-server", "example1"},
+			false,
+		},
+		{
+			[]string{"./mole", "-alias", "xyz", "-remote", ":443"},
+			false,
+		},
+		{
+			[]string{"./mole", "-alias", "xyz"},
+			false,
+		},
+	}
+
+	var c *cli.App
+
+	for index, test := range tests {
+		c = cli.New(test.args)
+		c.Parse()
+
+		err := c.Validate()
+		value := err == nil
+
+		if value != test.expected {
+			t.Errorf("test case %v failed. Expected: %v, value: %v", index, test.expected, value)
+		}
+	}
+}
