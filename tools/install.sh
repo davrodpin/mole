@@ -28,6 +28,8 @@ repository="davrodpin/mole"
 install_path="/usr/local/bin"
 curl_timeout_seconds=60
 
+echo -ne '\nInstalling mole.\nThis could take a while\n'
+
 # Get the os architecture
 os_arch=$(uname -m | tr '[:upper:]' '[:lower:]')
 
