@@ -13,27 +13,27 @@ func TestHandleArgs(t *testing.T) {
 		expected string
 	}{
 		{
-			[]string{"./mole", "-version"},
+			[]string{"./mole", "--version"},
 			"version",
 		},
 		{
-			[]string{"./mole", "-help"},
+			[]string{"./mole", "--help"},
 			"help",
 		},
 		{
-			[]string{"./mole", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--remote", ":443", "--server", "example1"},
 			"start",
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--alias", "xyz", "--remote", ":443", "--server", "example1"},
 			"new-alias",
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-delete"},
+			[]string{"./mole", "--alias", "xyz", "--delete"},
 			"rm-alias",
 		},
 		{
-			[]string{"./mole", "-start", "example1-alias"},
+			[]string{"./mole", "--start", "example1-alias"},
 			"start-from-alias",
 		},
 	}

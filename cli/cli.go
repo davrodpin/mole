@@ -1,17 +1,18 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/spf13/pflag"
 )
 
 var re *regexp.Regexp = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
 
 type App struct {
 	args []string
-	flag *flag.FlagSet
+	flag *pflag.FlagSet
 
 	Command     string
 	Local       HostInput
@@ -31,22 +32,21 @@ func New(args []string) *App {
 }
 
 func (c *App) Parse() error {
-	f := flag.NewFlagSet(usage(), flag.ExitOnError)
+	pf := pflag.NewFlagSet(usage(), pflag.ExitOnError)
+	pf.StringVarP(&c.Alias, "alias", "a", "", "Create a tunnel alias")
+	pf.BoolVarP(&c.AliasDelete, "delete", "d", false, "Create a tunnel alias")
+	pf.StringVarP(&c.Start, "start", "b", "", "Start a tunnel using a given alias")
+	pf.VarP(&c.Local, "local", "l", "(optional) Set local endpoint address: [<host>]:<port>")
+	pf.VarP(&c.Remote, "remote", "r", "set remote endpoint address: [<host>]:<port>")
+	pf.VarP(&c.Server, "server", "s", "set remote endpoint address: [<host>]:<port>")
+	pf.StringVarP(&c.Key, "key", "k", "", "(optional) Set server authentication key file path")
+	pf.BoolVarP(&c.Verbose, "verbose", "p", false, "(optional) Increase log verbosity")
+	pf.BoolVarP(&c.Help, "help", "h", false, "list all options available")
+	pf.BoolVarP(&c.Version, "version", "v", false, "display the mole version")
 
-	f.StringVar(&c.Alias, "alias", "", "Create a tunnel alias")
-	f.BoolVar(&c.AliasDelete, "delete", false, "delete a tunnel alias (must be used with -alias)")
-	f.StringVar(&c.Start, "start", "", "Start a tunnel using a given alias")
-	f.Var(&c.Local, "local", "(optional) Set local endpoint address: [<host>]:<port>")
-	f.Var(&c.Remote, "remote", "set remote endpoint address: [<host>]:<port>")
-	f.Var(&c.Server, "server", "set server address: [<user>@]<host>[:<port>]")
-	f.StringVar(&c.Key, "key", "", "(optional) Set server authentication key file path")
-	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
-	f.BoolVar(&c.Help, "help", false, "list all options available")
-	f.BoolVar(&c.Version, "version", false, "display the mole version")
+	pf.Parse(c.args[1:])
 
-	f.Parse(c.args[1:])
-
-	c.flag = f
+	c.flag = pf
 
 	if len(c.args[1:]) == 0 {
 		return fmt.Errorf("not enough arguments provided")
@@ -123,6 +123,10 @@ func (h *HostInput) Set(value string) error {
 	h.Port = strings.Trim(result["port"], ":")
 
 	return nil
+}
+
+func (h *HostInput) Type() string {
+	return "string"
 }
 
 // Address returns a string representation of HostInput to be used to perform
