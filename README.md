@@ -12,16 +12,14 @@ For more information about usage, examples and specific use cases, please visit 
 
 ## How to install
 
-### macOS
+```sh
+bash <(curl -fsSL https://raw.githubusercontent.com/davrodpin/mole/master/tools/install.sh)
+```
+
+### or if you prefer install it through [Homebrew](https://brew.sh)
 
 ```sh
 brew tap davrodpin/homebrew-mole && brew install mole
-```
-
-### Linux
-
-```sh
-curl -L https://github.com/davrodpin/mole/releases/download/v0.2.0/mole0.2.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
 ```
 
 ## How to use
