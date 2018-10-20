@@ -9,10 +9,12 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+// Store contains tunnels map by name
 type Store struct {
 	Tunnels map[string]*Tunnel `toml:"tunnels"`
 }
 
+// Tunnel struct
 type Tunnel struct {
 	Local   string `toml:"local"`
 	Remote  string `toml:"remote"`
@@ -28,13 +30,14 @@ func (t Tunnel) String() string {
 		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version)
 }
 
-func Save(alias string, tunnel *Tunnel) (*Tunnel, error) {
+// Save tunnel by name
+func Save(name string, tunnel *Tunnel) (*Tunnel, error) {
 	store, err := loadStore()
 	if err != nil {
 		return nil, fmt.Errorf("error while loading mole configuration: %v", err)
 	}
 
-	store.Tunnels[alias] = tunnel
+	store.Tunnels[name] = tunnel
 
 	_, err = createStore(store)
 	if err != nil {
@@ -44,6 +47,7 @@ func Save(alias string, tunnel *Tunnel) (*Tunnel, error) {
 	return tunnel, nil
 }
 
+// FindByName finds a tunnel by name
 func FindByName(name string) (*Tunnel, error) {
 	store, err := loadStore()
 	if err != nil {
@@ -53,12 +57,13 @@ func FindByName(name string) (*Tunnel, error) {
 	tun := store.Tunnels[name]
 
 	if tun == nil {
-		return nil, fmt.Errorf("alias could not be found: %s", name)
+		return nil, fmt.Errorf("tunnel could not be found: %s", name)
 	}
 
 	return tun, nil
 }
 
+// Remove tunnel by name
 func Remove(name string) (*Tunnel, error) {
 	store, err := loadStore()
 	if err != nil {

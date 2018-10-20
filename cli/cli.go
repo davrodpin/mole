@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-var re *regexp.Regexp = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
+var re = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
 
+// App is main struct
 type App struct {
 	args []string
 	flag *flag.FlagSet
@@ -26,10 +27,12 @@ type App struct {
 	AliasDelete bool
 }
 
+// New is constructor
 func New(args []string) *App {
 	return &App{args: args}
 }
 
+// Parse flags
 func (c *App) Parse() error {
 	f := flag.NewFlagSet(usage(), flag.ExitOnError)
 
@@ -75,6 +78,7 @@ func (c *App) Parse() error {
 	return nil
 }
 
+// Validate ...
 func (c App) Validate() error {
 	if c.Command == "new-alias" && c.Remote.String() == "" || c.Server.String() == "" {
 		return fmt.Errorf("remote and server options are required for new alias")
