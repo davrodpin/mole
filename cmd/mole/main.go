@@ -16,6 +16,7 @@ func main() {
 	app := cli.New(os.Args)
 	err := app.Parse()
 	if err != nil {
+		fmt.Printf("%v\n", err)
 		app.PrintUsage()
 		os.Exit(1)
 	}
