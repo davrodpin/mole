@@ -21,8 +21,8 @@ INFO[0000] listening on local address                    local_address="127.0.0.
   * [Access a computer or service behind a firewall](#access-a-computer-or-service-behind-a-firewall)
   * [Access a service that is listening only on a local address](#access-a-service-that-is-listening-only-on-a-local-address)
 * [Installation](#installation)
-  * [macOS](#macOS)
-  * [Linux](#linux)
+  * [macOS and Linux](#installation)
+  * [Homebrew](#or-if-you-prefer-install-it-through-homebrew)
 * [Usage](#usage)
 * [Examples](#examples)
   * [Provide all supported options](#provide-all-supported-options)
@@ -109,16 +109,14 @@ NOTE: _Server and Remote Computer could potentially be the same machine._
 
 # Installation
 
-## macOS
+```sh
+bash <(curl -fsSL https://raw.githubusercontent.com/davrodpin/mole/master/tools/install.sh)
+```
+
+### or if you prefer install it through [Homebrew](https://brew.sh)
 
 ```sh
 brew tap davrodpin/homebrew-mole && brew install mole
-```
-
-## Linux
-
-```sh
-curl -L https://github.com/davrodpin/mole/releases/download/v0.2.0/mole0.2.0.linux-amd64.tar.gz | tar xz -C /usr/local/bin
 ```
 
 # Usage
