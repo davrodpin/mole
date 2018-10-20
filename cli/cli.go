@@ -3,6 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -31,7 +32,9 @@ func New(args []string) *App {
 }
 
 func (c *App) Parse() error {
-	f := flag.NewFlagSet(usage(), flag.ExitOnError)
+	f := flag.NewFlagSet("", flag.ExitOnError)
+	f.Usage = c.PrintUsage
+	c.flag = f
 
 	f.StringVar(&c.Alias, "alias", "", "Create a tunnel alias")
 	f.BoolVar(&c.AliasDelete, "delete", false, "delete a tunnel alias (must be used with -alias)")
@@ -45,12 +48,6 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.Version, "version", false, "display the mole version")
 
 	f.Parse(c.args[1:])
-
-	c.flag = f
-
-	if len(c.args[1:]) == 0 {
-		return fmt.Errorf("not enough arguments provided")
-	}
 
 	if c.Help {
 		c.Command = "help"
@@ -76,17 +73,31 @@ func (c *App) Parse() error {
 }
 
 func (c App) Validate() error {
-	if c.Command == "new-alias" && (c.Remote.String() == "" || c.Server.String() == "") {
-		return fmt.Errorf("remote and server options are required for new alias")
+	if len(c.args[1:]) == 0 {
+		return fmt.Errorf("not enough arguments provided")
 	}
 
+	switch c.Command {
+	case "start", "new-alias":
+		if c.Remote.String() == "" {
+			return fmt.Errorf("required flag is missing: -remote")
+		} else if c.Server.String() == "" {
+			return fmt.Errorf("required flag is missing: -server")
+		}
+	}
 	return nil
 }
 
 // PrintUsage prints, to the standard output, the informational text on how to
 // use the tool.
-func (c App) PrintUsage() {
-	fmt.Printf("%s\n", usage())
+func (c *App) PrintUsage() {
+	fmt.Fprintf(os.Stderr, "%s\n\n", `usage:
+	mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole -alias <alias_name> -delete
+	mole -start <alias_name>
+	mole -help
+	mole -version`)
 	c.flag.PrintDefaults()
 }
 
@@ -133,17 +144,6 @@ func (h HostInput) Address() string {
 	}
 
 	return fmt.Sprintf("%s:%s", h.Host, h.Port)
-}
-
-func usage() string {
-	return `usage:
-  mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
-  mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
-  mole -alias <alias_name> -delete
-  mole -start <alias_name>
-  mole -help
-  mole -version
-	`
 }
 
 func parseServerInput(input string) map[string]string {
