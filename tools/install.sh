@@ -52,6 +52,7 @@ fi
 filename="mole${latest_version#v}.${os_type}-amd64.tar.gz"
 download_link="https://github.com/${repository}/releases/download/${latest_version}/${filename}"
 
+echo -ne "\nThis script is about to install mole under ${install_path}, but it needs administrator privileges in order to deploy the file.  It may require you to type your password below:\n"
 curl --silent --location --max-time "${curl_timeout_seconds}" "${download_link}" | sudo tar -xz -C "${install_path}" 2>/dev/null|| {
 	echo -ne "\nThere was an error trying to install the latest version of mole.\nPlease try again later.\n"
 	exit 1
