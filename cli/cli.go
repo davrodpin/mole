@@ -8,8 +8,9 @@ import (
 	"strings"
 )
 
-var re *regexp.Regexp = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
+var re = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
 
+// App contains main settings of application.
 type App struct {
 	args []string
 	flag *flag.FlagSet
@@ -28,10 +29,12 @@ type App struct {
 	AliasList   bool
 }
 
+// New creates a new instance of App.
 func New(args []string) *App {
 	return &App{args: args}
 }
 
+// Parse grabs arguments and flags from CLI.
 func (c *App) Parse() error {
 	f := flag.NewFlagSet("", flag.ExitOnError)
 	f.Usage = c.PrintUsage
@@ -76,6 +79,7 @@ func (c *App) Parse() error {
 	return nil
 }
 
+// Validate checks parsed params.
 func (c App) Validate() error {
 	if len(c.args[1:]) == 0 {
 		return fmt.Errorf("not enough arguments provided")
