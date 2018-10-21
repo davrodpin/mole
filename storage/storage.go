@@ -9,12 +9,12 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Store contains tunnels map by name
+// Store contains the map of tunnels, where key is string tunnel alias and value is Tunnel.
 type Store struct {
 	Tunnels map[string]*Tunnel `toml:"tunnels"`
 }
 
-// Tunnel struct
+// Tunnel represents settings of the ssh tunnel.
 type Tunnel struct {
 	Local   string `toml:"local"`
 	Remote  string `toml:"remote"`
@@ -30,7 +30,7 @@ func (t Tunnel) String() string {
 		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version)
 }
 
-// Save tunnel by name
+// Save stores Tunnel to the Store.
 func Save(name string, tunnel *Tunnel) (*Tunnel, error) {
 	store, err := loadStore()
 	if err != nil {
@@ -47,7 +47,7 @@ func Save(name string, tunnel *Tunnel) (*Tunnel, error) {
 	return tunnel, nil
 }
 
-// FindByName finds a tunnel by name
+// FindByName finds the Tunnel in Store by name.
 func FindByName(name string) (*Tunnel, error) {
 	store, err := loadStore()
 	if err != nil {
@@ -63,7 +63,7 @@ func FindByName(name string) (*Tunnel, error) {
 	return tun, nil
 }
 
-// Remove tunnel by name
+// Remove deletes Tunnel from the Store by name.
 func Remove(name string) (*Tunnel, error) {
 	store, err := loadStore()
 	if err != nil {
