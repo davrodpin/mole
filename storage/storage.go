@@ -63,6 +63,16 @@ func FindByName(name string) (*Tunnel, error) {
 	return tun, nil
 }
 
+// FindAll finds all the Tunnels in Store.
+func FindAll() (map[string]*Tunnel, error) {
+	store, err := loadStore()
+	if err != nil {
+		return nil, fmt.Errorf("error while loading mole configuration: %v", err)
+	}
+
+	return store.Tunnels, nil
+}
+
 // Remove deletes Tunnel from the Store by name.
 func Remove(name string) (*Tunnel, error) {
 	store, err := loadStore()
