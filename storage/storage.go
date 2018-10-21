@@ -57,7 +57,7 @@ func FindByName(name string) (*Tunnel, error) {
 	tun := store.Tunnels[name]
 
 	if tun == nil {
-		return nil, fmt.Errorf("tunnel could not be found: %s", name)
+		return nil, fmt.Errorf("alias could not be found: %s", name)
 	}
 
 	return tun, nil
