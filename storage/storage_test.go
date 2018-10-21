@@ -60,6 +60,40 @@ func TestRemoveTunnel(t *testing.T) {
 
 }
 
+func TestFindAll(t *testing.T) {
+	alias1 := "example-save-443"
+	expected1 := &storage.Tunnel{
+		Local:   "",
+		Remote:  ":443",
+		Server:  "example",
+		Verbose: true,
+	}
+
+	alias2 := "example-save-80"
+	expected2 := &storage.Tunnel{
+		Local:   "",
+		Remote:  ":80",
+		Server:  "example",
+		Verbose: true,
+	}
+
+	storage.Save(alias1, expected1)
+	storage.Save(alias2, expected2)
+
+	expectedTunnelList := make(map[string]*storage.Tunnel)
+	expectedTunnelList[alias1] = expected1
+	expectedTunnelList[alias2] = expected2
+
+	tunnels, err := storage.FindAll()
+	if err != nil {
+		t.Errorf("Test failed while retrieving all tunnels: %v", err)
+	}
+
+	if !reflect.DeepEqual(expectedTunnelList, tunnels) {
+		t.Errorf("Test failed.\n\texpected: %v\n\tvalue   : %v", expectedTunnelList, tunnels)
+	}
+}
+
 func TestMain(m *testing.M) {
 	dir, err := ioutil.TempDir("", "mole-testing")
 	if err != nil {

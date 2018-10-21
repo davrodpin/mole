@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/davrodpin/mole/cli"
 	"github.com/davrodpin/mole/storage"
@@ -48,7 +49,11 @@ func main() {
 		if err != nil {
 			os.Exit(1)
 		}
-
+	case "aliases":
+		err := lsAliases(*app)
+		if err != nil {
+			os.Exit(1)
+		}
 	}
 }
 
@@ -115,6 +120,22 @@ func rmAlias(app cli.App) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func lsAliases(app cli.App) error {
+	tunnels, err := storage.FindAll()
+	if err != nil {
+		return err
+	}
+
+	aliases := []string{}
+	for alias := range tunnels {
+		aliases = append(aliases, alias)
+	}
+
+	fmt.Printf("alias list: %s\n", strings.Join(aliases, ", "))
 
 	return nil
 }

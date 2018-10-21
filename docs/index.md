@@ -128,11 +128,14 @@ usage:
   mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
   mole -alias <alias_name> -delete
   mole -start <alias_name>
+  mole -aliases
   mole -help
   mole -version
 
   -alias string
         Create a tunnel alias
+  -aliases
+        list all aliases
   -delete
         delete a tunnel alias (must be used with -alias)
   -help
