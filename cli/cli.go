@@ -49,9 +49,9 @@ func (c *App) Parse() error {
 	pf.VarP(&c.Remote, "remote", "r", "set remote endpoint address: [<host>]:<port>")
 	pf.VarP(&c.Server, "server", "s", "set remote endpoint address: [<host>]:<port>")
 	pf.StringVarP(&c.Key, "key", "k", "", "(optional) Set server authentication key file path")
-	pf.BoolVarP(&c.Verbose, "verbose", "V", false, "(optional) Increase log verbosity")
+	pf.BoolVarP(&c.Verbose, "verbose", "v", false, "(optional) Increase log verbosity")
 	pf.BoolVarP(&c.Help, "help", "h", false, "list all options available")
-	pf.BoolVarP(&c.Version, "version", "v", false, "display the mole version")
+	pf.BoolVar(&c.Version, "version", false, "display the mole version")
 
 	pf.Parse(c.args[1:])
 

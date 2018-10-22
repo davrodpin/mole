@@ -17,10 +17,6 @@ func TestHandleArgs(t *testing.T) {
 			"version",
 		},
 		{
-			[]string{"./mole", "-v"},
-			"version",
-		},
-		{
 			[]string{"./mole", "--help"},
 			"help",
 		},
