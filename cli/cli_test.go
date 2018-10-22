@@ -80,19 +80,35 @@ func TestValidate(t *testing.T) {
 		expected bool
 	}{
 		{
-			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--alias", "xyz", "--remote", ":443", "--server", "example1"},
 			true,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-server", "example1"},
+			[]string{"./mole", "-a", "xyz", "-r", ":443", "-s", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "--alias", "xyz", "--server", "example1"},
 			false,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-remote", ":443"},
+			[]string{"./mole", "-a", "xyz", "-s", "example1"},
 			false,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz"},
+			[]string{"./mole", "--alias", "xyz", "--remote", ":443"},
+			false,
+		},
+		{
+			[]string{"./mole", "-a", "xyz", "-r", ":443"},
+			false,
+		},
+		{
+			[]string{"./mole", "--alias", "xyz"},
+			false,
+		},
+		{
+			[]string{"./mole", "-a", "xyz"},
 			false,
 		},
 	}
