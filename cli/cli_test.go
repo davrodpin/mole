@@ -17,7 +17,15 @@ func TestHandleArgs(t *testing.T) {
 			"version",
 		},
 		{
+			[]string{"./mole", "-v"},
+			"version",
+		},
+		{
 			[]string{"./mole", "--help"},
+			"help",
+		},
+		{
+			[]string{"./mole", "-h"},
 			"help",
 		},
 		{
@@ -25,11 +33,23 @@ func TestHandleArgs(t *testing.T) {
 			"start",
 		},
 		{
+			[]string{"./mole", "-r", ":443", "-s", "example1"},
+			"start",
+		},
+		{
 			[]string{"./mole", "--alias", "xyz", "--remote", ":443", "--server", "example1"},
 			"new-alias",
 		},
 		{
+			[]string{"./mole", "-a", "xyz", "-r", ":443", "-s", "example1"},
+			"new-alias",
+		},
+		{
 			[]string{"./mole", "--alias", "xyz", "--delete"},
+			"rm-alias",
+		},
+		{
+			[]string{"./mole", "-a", "xyz", "-d"},
 			"rm-alias",
 		},
 		{
@@ -38,6 +58,10 @@ func TestHandleArgs(t *testing.T) {
 		},
 		{
 			[]string{"./mole", "--start", "example1-alias"},
+			"start-from-alias",
+		},
+		{
+			[]string{"./mole", "-S", "example1-alias"},
 			"start-from-alias",
 		},
 	}
