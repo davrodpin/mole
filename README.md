@@ -54,26 +54,26 @@ INFO[0000] listening on local address                    local_address="127.0.0.
 
 # Commands
 ```sh
-  -a, --alias string
+  --alias, -a string
         Create a tunnel alias
-  -A  --aliases
+  --aliases, -A
         List all aliases
-  -d, --delete
+  --delete, -d
         Delete a tunnel alias (must be used with -alias)
-  -h, --help
+  --help, -h
         List all options available
-  -k, --key string
+  --key, -k string
         (optional) Set server authentication key file path
-  -l, --local value
+  --local, -l value
         (optional) Set local endpoint address: [<host>]:<port>
-  -r, --remote value
+  --remote, -r value
         Set remote endpoint address: [<host>]:<port>
-  -s, --server value
+  --server, -s value
         Set server address: [<user>@]<host>[:<port>]
- -st, --start string
+  --start -S string
         Start a tunnel using a given alias (optional) Increase log verbosity
-  -v  --version
+  --version
         Display the mole version	
-  -V  --verbose
+  --verbose, -v
         (optional) Increase log verbosity
 ```
