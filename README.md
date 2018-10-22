@@ -34,7 +34,7 @@ INFO[0000] listening on local address                    local_address="127.0.0.
 ```
 
 ```sh
-$ mole -V --local 127.0.0.1:8080 --remote 172.17.0.100:80 --erver user@example.com:22 --key ~/.ssh/id_rsa
+$ mole -V --local 127.0.0.1:8080 --remote 172.17.0.100:80 --server user@example.com:22 --key ~/.ssh/id_rsa
 DEBU[0000] cli options                                   key=/home/mole/.ssh/id_rsa local="127.0.0.1:8080" remote="172.17.0.100:80" server="user@example.com:22" v=true
 DEBU[0000] using ssh config file from: /home/mole/.ssh/config
 DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
