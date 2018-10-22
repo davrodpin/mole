@@ -55,10 +55,6 @@ func (c *App) Parse() error {
 
 	pf.Parse(c.args[1:])
 
-	if len(c.args[1:]) == 0 {
-		return fmt.Errorf("not enough arguments provided")
-	}
-
 	if c.Help {
 		c.Command = "help"
 	} else if c.Version {
