@@ -158,8 +158,9 @@ func (h *HostInput) Set(value string) error {
 	return nil
 }
 
+// Type returns the type of the flags value as a string
 func (h *HostInput) Type() string {
-	return "string"
+	return "HostInput"
 }
 
 // Address returns a string representation of HostInput to be used to perform
