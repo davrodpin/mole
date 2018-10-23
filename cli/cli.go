@@ -106,7 +106,20 @@ func (c *App) PrintUsage() {
 	mole -alias <alias_name> -delete
 	mole -start <alias_name>
 	mole -help
-	mole -version`)
+	mole -version
+	
+	--alias, -a string    Create a tunnel alias
+	--aliases, -A         list all aliases
+	--delete, -d          Create a tunnel alias
+	--help, -h            list all options available
+	--key, -k string      (optional) Set server authentication key file path
+	--local, -l string    (optional) Set local endpoint address: [<host>]:<port>
+	--remote, -r string   set remote endpoint address: [<host>]:<port>
+	--server, -s string   set remote endpoint address: [<host>]:<port>
+	--start, -s string    Start a tunnel using a given alias
+	--verbose, -v         (optional) Increase log verbosity
+	--version             display the mole version
+	`)
 	c.flag.PrintDefaults()
 }
 
