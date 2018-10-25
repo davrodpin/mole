@@ -55,4 +55,4 @@ INFO[0000] listening on local address                    local_address="127.0.0.
 # Test Environment
 
 The project provides a small automated infrastructure to help on funcional
-tests. Please refer to [this document](tests-env/README.md) for more details about it.
+tests. Please refer to [this document](test-env/README.md) for more details about it.
