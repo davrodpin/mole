@@ -54,16 +54,16 @@ test environment:
 $ make test-env
 ```
 
-This builds two docker containers: `mole\_ssh` and `mole\_http` with a local
+This builds two docker containers: `mole_ssh` and `mole_http` with a local
 network (192.168.33.0/24) that connects them.
 
-`mole\_ssh` runs a ssh server listening on port `22`.
+`mole_ssh` runs a ssh server listening on port `22`.
 This port is published on the local computer using port `22122`, so ssh
 connections can be made using address `127.0.0.1:22122`.
-All ssh connection to `mole\_ssh` should be done using the user `mole` and the
+All ssh connection to `mole_ssh` should be done using the user `mole` and the
 key file located on `test-env/key`
 
-`mole\_http` runs a http server listening on port `80`.
+`mole_http` runs a http server listening on port `80`.
 The http server responds only to requests to `http://192.168.33.11/`.
 
 ### Teardown
@@ -73,7 +73,7 @@ $ make rm-test-env
 ```
 
 This will destroy both of the containers that was built by running
-`make test-env`: `mole\_ssh` and `mole\_http`.
+`make test-env`: `mole_ssh` and `mole_http`.
 
 The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 **not** be deleted.
