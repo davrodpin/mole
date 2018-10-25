@@ -51,3 +51,8 @@ DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/ho
 DEBU[0000] tunnel: [local:127.0.0.1:8443, server:example.com:22, remote:127.0.0.1:443]
 INFO[0000] listening on local address                    local_address="127.0.0.1:8443"
 ```
+
+# Test Environment
+
+The project provides a small automated infrastructure to help on funcional
+tests. Please refer to [this document](tests-env/README.md) for more details about it.

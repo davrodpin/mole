@@ -1,0 +1,11 @@
+Port 22
+Protocol 2
+PermitRootLogin no
+PubkeyAuthentication yes
+PasswordAuthentication no
+AuthorizedKeysFile	.ssh/authorized_keys
+SyslogFacility AUTH
+LogLevel INFO
+AllowAgentForwarding yes
+#	AllowTcpForwarding no
+# PermitTunnel no

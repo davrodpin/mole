@@ -1,0 +1,24 @@
+#!/bin/bash
+
+SSH=$(which ssh)
+WIRESHARK=$(which wireshark)
+
+KEY="test-env/key"
+PORT=22122
+ADDRESS="mole@127.0.0.1"
+IFACE="eth0"
+FILTER="$1"
+CMD="tcpdump -s 0 -U -n -w - -i ${IFACE} ${FILTER}"
+
+[ ! -f "$SSH" ] && {
+  printf "ssh needs to be installed to use this tool\n"
+  exit 1
+}
+
+[ ! -f "$WIRESHARK" ] && {
+  printf "wireshark needs to be installed to use this tool\n"
+  exit 1
+}
+
+
+${SSH} -i ${KEY} -p ${PORT} ${ADDRESS} ${CMD} | ${WIRESHARK} -k -i -

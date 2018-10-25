@@ -15,3 +15,38 @@ test:
 .cover: test
 	go tool cover -html=coverage.txt
 
+
+add-network:
+	-@docker network create --subnet=192.168.33.0/24 mole
+rm-network:
+	-@docker network rm mole
+
+rm-mole-http:
+	-@docker rm -f mole_http
+mole-http: rm-mole-http
+	@docker build \
+		--tag mole_http:latest \
+		./test-env/http-server/
+	@docker run \
+		--detach \
+		--network mole \
+		--ip 192.168.33.11 \
+		--name mole_http mole_http:latest
+
+rm-mole-ssh:
+	-@docker rm -f mole_ssh
+mole-ssh: rm-mole-ssh
+	@docker build \
+		--tag mole_ssh:latest \
+		./test-env/ssh-server/
+	@docker run \
+		--detach \
+		--network mole \
+		--ip 192.168.33.10 \
+		--publish 22122:22 \
+		--name mole_ssh mole_ssh:latest
+
+test-env: add-network mole-http mole-ssh
+	@bash test-env/provision.sh
+
+rm-test-env: rm-mole-http rm-mole-ssh rm-network
