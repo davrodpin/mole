@@ -7,5 +7,3 @@ AuthorizedKeysFile	.ssh/authorized_keys
 SyslogFacility AUTH
 LogLevel INFO
 AllowAgentForwarding yes
-#	AllowTcpForwarding no
-# PermitTunnel no
