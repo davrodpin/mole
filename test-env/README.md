@@ -44,7 +44,7 @@ test environment:
 * [Docker](https://docs.docker.com/install/)
 * ssh
 * ssh-keygen
-* Wireshark (optional)
+* [Wireshark](https://www.wireshark.org/download.html) (optional)
 
 ## Managing the Environment
 
