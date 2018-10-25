@@ -21,8 +21,6 @@ KEY_PATH="${APP_PATH}/key"
   $KEYGEN -t rsa -N "" -f $KEY_PATH
 }
 
-# TODO fail if mole_ssh container is not running
-
 ${DOCKER} cp "${KEY_PATH}.pub" mole_ssh:/home/mole/.ssh/authorized_keys
 ${DOCKER} exec mole_ssh chown mole:mole /home/mole/.ssh/authorized_keys
 ${DOCKER} exec mole_ssh chmod 600 /home/mole/.ssh/authorized_keys
