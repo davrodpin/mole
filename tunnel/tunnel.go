@@ -227,7 +227,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	var signer ssh.Signer
 	pemBlock, extra := pem.Decode(key)
 	if len(extra) != 0 {
-		return nil, fmt.Errorf("extra data in decoded key")
+		return nil, fmt.Errorf("extra data in encoded key")
 	}
 	if x509.IsEncryptedPEMBlock(pemBlock) {
 		fmt.Printf("Please enter your passphrase: ")
