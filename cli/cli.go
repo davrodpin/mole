@@ -15,18 +15,19 @@ type App struct {
 	args []string
 	flag *flag.FlagSet
 
-	Command     string
-	Local       HostInput
-	Remote      HostInput
-	Server      HostInput
-	Key         string
-	Verbose     bool
-	Help        bool
-	Version     bool
-	Alias       string
-	Start       string
-	AliasDelete bool
-	AliasList   bool
+	Command        string
+	Local          HostInput
+	Remote         HostInput
+	Server         HostInput
+	Key            string
+	Verbose        bool
+	Help           bool
+	Version        bool
+	Alias          string
+	Start          string
+	AliasDelete    bool
+	AliasList      bool
+	ReconnectAfter int
 }
 
 // New creates a new instance of App.
@@ -48,6 +49,7 @@ func (c *App) Parse() error {
 	f.Var(&c.Remote, "remote", "set remote endpoint address: [<host>]:<port>")
 	f.Var(&c.Server, "server", "set server address: [<user>@]<host>[:<port>]")
 	f.StringVar(&c.Key, "key", "", "(optional) Set server authentication key file path")
+	f.IntVar(&c.ReconnectAfter, "reconnect-after", 10, "(optional) Used to override the timeout of the tunnel session")
 	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
 	f.BoolVar(&c.Help, "help", false, "list all options available")
 	f.BoolVar(&c.Version, "version", false, "display the mole version")

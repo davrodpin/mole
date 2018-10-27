@@ -123,7 +123,7 @@ func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
 
 // Start creates a new ssh tunnel, allowing data exchange between the local and
 // remote endpoints.
-func (t *Tunnel) Start() error {
+func (t *Tunnel) Start(timeout int) error {
 	local, err := net.Listen("tcp", t.local)
 	if err != nil {
 		return err
@@ -158,9 +158,20 @@ func (t *Tunnel) Start() error {
 		}
 	}(local, t)
 
-	select {
-	case err = <-t.done:
-		return err
+	for {
+		select {
+		case err = <-t.done:
+			return err
+		case <-time.After(time.Second * time.Duration(timeout)):
+			fmt.Printf("timed out after: %d seconds ... attempting to reconnect\n", timeout)
+			if err = t.Start(timeout); err != nil {
+				log.WithFields(log.Fields{
+					"tunnel": t.String(),
+				}).Errorf("%v", err)
+
+				return err
+			}
+		}
 	}
 }
 

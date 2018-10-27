@@ -90,7 +90,7 @@ func start(app cli.App) error {
 
 	t := tunnel.New(app.Local.String(), s, app.Remote.String())
 
-	if err = t.Start(); err != nil {
+	if err = t.Start(app.ReconnectAfter); err != nil {
 		log.WithFields(log.Fields{
 			"tunnel": t.String(),
 		}).Errorf("%v", err)
