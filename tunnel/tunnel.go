@@ -1,6 +1,8 @@
 package tunnel
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -8,11 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // Server holds the SSH Server attributes used for the client to connect to it.
@@ -220,9 +224,26 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 		return nil, err
 	}
 
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		return nil, err
+	var signer ssh.Signer
+	pemBlock, extra := pem.Decode(key)
+	if len(extra) != 0 {
+		return nil, fmt.Errorf("extra data in decoded key")
+	}
+	if x509.IsEncryptedPEMBlock(pemBlock) {
+		fmt.Printf("Please enter your passphrase: ")
+		passphrase, err := terminal.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			return nil, err
+		}
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, passphrase)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		signer, err = ssh.ParsePrivateKey(key)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	callback, err := knownHostsCallback()
