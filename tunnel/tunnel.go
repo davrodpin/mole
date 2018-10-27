@@ -164,13 +164,6 @@ func (t *Tunnel) Start(timeout int) error {
 			return err
 		case <-time.After(time.Second * time.Duration(timeout)):
 			fmt.Printf("timed out after: %d seconds ... attempting to reconnect\n", timeout)
-			if err = t.Start(timeout); err != nil {
-				log.WithFields(log.Fields{
-					"tunnel": t.String(),
-				}).Errorf("%v", err)
-
-				return err
-			}
 		}
 	}
 }
