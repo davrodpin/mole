@@ -24,7 +24,7 @@ func Example() {
 	t := tunnel.New(local, server, remote)
 
 	// Start the tunnel
-	err = t.Start()
+	err = t.Start(10)
 	if err != nil {
 		log.Fatalf("error starting tunnel: %v\n", err)
 	}
