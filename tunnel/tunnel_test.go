@@ -19,6 +19,7 @@ import (
 
 var sshDir string
 var keyPath string
+var encryptedKeyPath string
 var publicKeyPath string
 var knownHostsPath string
 
@@ -185,6 +186,25 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestLoadPrivateKey(t *testing.T) {
+	b, err := ioutil.ReadFile(encryptedKeyPath)
+	if err != nil {
+		t.Errorf("error reading encrypted key file: %v", err)
+	}
+
+	ReadPassword = func(fd int) ([]byte, error) {
+		passByte := []byte("password")
+		return passByte, nil
+	}
+	p, err := loadPrivateKey(b)
+	if p == nil {
+		t.Errorf("Signer not received from private key: %v", err)
+	}
+	if err != nil {
+		t.Errorf("Decoding encrypted key failed: %v", err)
+	}
+}
+
 // prepareTunnel creates a Tunnel object making sure all infrastructure
 // dependencies (ssh and http servers) are ready returning a connection that
 // can be use to reach the remote http server through the tunnel.
@@ -218,6 +238,7 @@ func prepareTestEnv() {
 	testDir := filepath.Join(home, ".ssh")
 
 	keyPath = filepath.Join(testDir, "id_rsa")
+	encryptedKeyPath = filepath.Join(testDir, "id_rsa_encrypted")
 	publicKeyPath = filepath.Join(testDir, "id_rsa.pub")
 	knownHostsPath = filepath.Join(testDir, "known_hosts")
 	sshDir = testDir
@@ -238,6 +259,10 @@ func prepareTestEnv() {
 		{
 			"from": filepath.Join(fixtureDir, "id_rsa"),
 			"to":   filepath.Join(testDir, "other_key"),
+		},
+		{
+			"from": filepath.Join(fixtureDir, "id_rsa_encrypted"),
+			"to":   filepath.Join(testDir, "id_rsa_encrypted"),
 		},
 	}
 
