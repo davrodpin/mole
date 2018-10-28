@@ -24,6 +24,9 @@ const (
 	HostMissing = "server host has to be provided as part of the server address"
 )
 
+//ReadPassword holds the function used for reading password from user
+var ReadPassword = terminal.ReadPassword
+
 // Server holds the SSH Server attributes used for the client to connect to it.
 type Server struct {
 	Name    string
@@ -252,20 +255,18 @@ func (t *Tunnel) proxy() (net.Conn, error) {
 	return remoteConn, nil
 }
 
-func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
-	key, err := ioutil.ReadFile(server.Key)
-	if err != nil {
-		return nil, err
-	}
-
+func loadPrivateKey(key []byte) (ssh.Signer, error) {
 	var signer ssh.Signer
 	pemBlock, extra := pem.Decode(key)
+	if pemBlock == nil && len(extra) > 0 {
+		return nil, fmt.Errorf("error while parsing key %s: no PEM data found", key)
+	}
 	if len(extra) != 0 {
 		return nil, fmt.Errorf("extra data in encoded key")
 	}
 	if x509.IsEncryptedPEMBlock(pemBlock) {
 		fmt.Printf("Please enter your passphrase: ")
-		passphrase, err := terminal.ReadPassword(int(syscall.Stdin))
+		passphrase, err := ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			return nil, err
 		}
@@ -274,10 +275,24 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 			return nil, err
 		}
 	} else {
+		var err error
 		signer, err = ssh.ParsePrivateKey(key)
 		if err != nil {
 			return nil, err
 		}
+	}
+	return signer, nil
+}
+
+func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
+	key, err := ioutil.ReadFile(server.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	signer, err := loadPrivateKey(key)
+	if err != nil {
+		return nil, err
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
