@@ -33,6 +33,10 @@ func TestHandleArgs(t *testing.T) {
 			"rm-alias",
 		},
 		{
+			[]string{"./mole", "-aliases"},
+			"aliases",
+		},
+		{
 			[]string{"./mole", "-start", "example1-alias"},
 			"start-from-alias",
 		},
@@ -56,8 +60,20 @@ func TestValidate(t *testing.T) {
 		expected bool
 	}{
 		{
+			[]string{"./mole"},
+			false,
+		},
+		{
 			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
 			true,
+		},
+		{
+			[]string{"./mole", "-alias", "xyz", "-remote", ":443"},
+			false,
+		},
+		{
+			[]string{"./mole", "-alias", "xyz", "-server", "example1"},
+			false,
 		},
 		{
 			[]string{"./mole", "-alias", "xyz", "-server", "example1"},
