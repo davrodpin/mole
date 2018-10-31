@@ -86,12 +86,17 @@ func (c App) Validate() error {
 	}
 
 	switch c.Command {
-	case "start", "new-alias":
+	case "new-alias":
 		if c.Remote.String() == "" {
 			return fmt.Errorf("required flag is missing: -remote")
 		} else if c.Server.String() == "" {
 			return fmt.Errorf("required flag is missing: -server")
 		}
+	case "start":
+		if c.Server.String() == "" {
+			return fmt.Errorf("required flag is missing: -server")
+		}
+
 	}
 	return nil
 }

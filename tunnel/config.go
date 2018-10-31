@@ -16,9 +16,10 @@ type SSHConfigFile struct {
 	sshConfig *ssh_config.Config
 }
 
-// NewSSHConfigFile creates a new instance of SSHConfigFile based on the given
-// ssh config file path.
-func NewSSHConfigFile(configPath string) (*SSHConfigFile, error) {
+// NewSSHConfigFile creates a new instance of SSHConfigFile based on the
+// ssh config file from $HOME/.ssh/config.
+func NewSSHConfigFile() (*SSHConfigFile, error) {
+	configPath := filepath.Join(os.Getenv("HOME"), ".ssh", "config")
 	f, err := os.Open(filepath.Clean(configPath))
 	if err != nil {
 		return nil, err
@@ -50,13 +51,20 @@ func (r SSHConfigFile) Get(host string) *SSHHost {
 		user = ""
 	}
 
+	localForward, err := r.getLocalForward(host)
+	if err != nil {
+		localForward = &LocalForward{Local: "", Remote: ""}
+		log.Warningf("error reading LocalForward configuration from ssh config file. This option will not be used: %v", err)
+	}
+
 	key := r.getKey(host)
 
 	return &SSHHost{
-		Hostname: hostname,
-		Port:     port,
-		User:     user,
-		Key:      key,
+		Hostname:     hostname,
+		Port:         port,
+		User:         user,
+		Key:          key,
+		LocalForward: localForward,
 	}
 }
 
@@ -72,6 +80,35 @@ func (r SSHConfigFile) getHostname(host string) string {
 	}
 
 	return hostname
+}
+
+func (r SSHConfigFile) getLocalForward(host string) (*LocalForward, error) {
+	var local, remote string
+
+	c, err := r.sshConfig.Get(host, "LocalForward")
+	if err != nil {
+		return nil, err
+	}
+
+	l := strings.Fields(c)
+
+	if len(l) < 2 {
+		return nil, fmt.Errorf("bad forwarding specification on ssh config file: %s", l)
+	}
+
+	local = l[0]
+	remote = l[1]
+
+	if strings.HasPrefix(local, ":") {
+		local = fmt.Sprintf("127.0.0.1%s", local)
+	}
+
+	if local != "" && !strings.Contains(local, ":") {
+		local = fmt.Sprintf("127.0.0.1:%s", local)
+	}
+
+	return &LocalForward{Local: local, Remote: remote}, nil
+
 }
 
 func (r SSHConfigFile) getKey(host string) string {
@@ -94,10 +131,17 @@ func (r SSHConfigFile) getKey(host string) string {
 
 // SSHHost represents a host configuration extracted from a ssh config file.
 type SSHHost struct {
-	Hostname string
-	Port     string
-	User     string
-	Key      string
+	Hostname     string
+	Port         string
+	User         string
+	Key          string
+	LocalForward *LocalForward
+}
+
+// LocalForward represents a LocalForward configuration for SSHHost.
+type LocalForward struct {
+	Local  string
+	Remote string
 }
 
 // String returns a string representation of a SSHHost.
