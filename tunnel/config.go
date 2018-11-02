@@ -90,6 +90,10 @@ func (r SSHConfigFile) getLocalForward(host string) (*LocalForward, error) {
 		return nil, err
 	}
 
+	if c == "" {
+		return &LocalForward{Local: "", Remote: ""}, nil
+	}
+
 	l := strings.Fields(c)
 
 	if len(l) < 2 {
@@ -138,13 +142,18 @@ type SSHHost struct {
 	LocalForward *LocalForward
 }
 
+// String returns a string representation of a SSHHost.
+func (h SSHHost) String() string {
+	return fmt.Sprintf("[hostname=%s, port=%s, user=%s, key=%s, local_forward=%s]", h.Hostname, h.Port, h.User, h.Key, h.LocalForward)
+}
+
 // LocalForward represents a LocalForward configuration for SSHHost.
 type LocalForward struct {
 	Local  string
 	Remote string
 }
 
-// String returns a string representation of a SSHHost.
-func (h SSHHost) String() string {
-	return fmt.Sprintf("[hostname=%s, port=%s, user=%s, key=%s]", h.Hostname, h.Port, h.User, h.Key)
+// String returns a string representation of LocalForward.
+func (f LocalForward) String() string {
+	return fmt.Sprintf("[local=%s, remote=%s]", f.Local, f.Remote)
 }
