@@ -94,6 +94,7 @@ type Tunnel struct {
 	server *Server
 	remote string
 	done   chan error
+	client *ssh.Client
 }
 
 // New creates a new instance of Tunnel.
@@ -154,6 +155,9 @@ func (t *Tunnel) Start() error {
 
 	select {
 	case err = <-t.done:
+		if t.client != nil {
+			t.client.Conn.Close()
+		}
 		return err
 	}
 }
@@ -186,16 +190,19 @@ func (t *Tunnel) proxy() (net.Conn, error) {
 		return nil, fmt.Errorf("error generating ssh client config: %s", err)
 	}
 
-	serverConn, err := ssh.Dial("tcp", t.server.Address, c)
-	if err != nil {
-		return nil, fmt.Errorf("server dial error: %s", err)
+	if t.client == nil {
+		t.client, err = ssh.Dial("tcp", t.server.Address, c)
+		if err != nil {
+			return nil, fmt.Errorf("server dial error: %s", err)
+		}
+
+		log.WithFields(log.Fields{
+			"server": t.server,
+		}).Debug("new connection established to server")
+
 	}
 
-	log.WithFields(log.Fields{
-		"server": t.server,
-	}).Debug("new connection established to server")
-
-	remoteConn, err := serverConn.Dial("tcp", t.remote)
+	remoteConn, err := t.client.Dial("tcp", t.remote)
 	if err != nil {
 		return nil, fmt.Errorf("remote dial error: %s", err)
 	}
