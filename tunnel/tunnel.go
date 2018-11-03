@@ -38,21 +38,17 @@ func NewServer(user, address, key string) (*Server, error) {
 		port = args[1]
 	}
 
-	c := filepath.Join(os.Getenv("HOME"), ".ssh", "config")
-	if _, err := os.Stat(c); err != nil {
+	c, err := NewSSHConfigFile()
+	if err != nil {
 		hostname = host
-	} else {
-		c, err := NewSSHConfigFile(c)
-		if err != nil {
-			return nil, fmt.Errorf("error accessing %s: %v", host, err)
-		}
-
-		h := c.Get(host)
-		hostname = reconcileHostname(host, h.Hostname)
-		port = reconcilePort(port, h.Port)
-		user = reconcileUser(user, h.User)
-		key = reconcileKey(key, h.Key)
+		return nil, fmt.Errorf("error accessing %s: %v", host, err)
 	}
+
+	h := c.Get(host)
+	hostname = reconcileHostname(host, h.Hostname)
+	port = reconcilePort(port, h.Port)
+	user = reconcileUser(user, h.User)
+	key = reconcileKey(key, h.Key)
 
 	if host == "" {
 		return nil, fmt.Errorf("server host has to be provided as part of the server address")
@@ -98,20 +94,19 @@ type Tunnel struct {
 	server *Server
 	remote string
 	done   chan error
+	client *ssh.Client
 }
 
 // New creates a new instance of Tunnel.
 func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
-
-	if localAddress == "" {
-		localAddress = "127.0.0.1:0"
-	} else if strings.HasPrefix(localAddress, ":") {
-		localAddress = fmt.Sprintf("127.0.0.1%s", localAddress)
+	cfg, err := NewSSHConfigFile()
+	if err != nil {
+		log.Warningf("error to read ssh config: %v", err)
 	}
 
-	if strings.HasPrefix(remoteAddress, ":") {
-		remoteAddress = fmt.Sprintf("127.0.0.1%s", remoteAddress)
-	}
+	sh := cfg.Get(server.Name)
+	localAddress = reconcileLocal(localAddress, sh.LocalForward.Local)
+	remoteAddress = reconcileRemote(remoteAddress, sh.LocalForward.Remote)
 
 	return &Tunnel{
 		local:  localAddress,
@@ -160,6 +155,9 @@ func (t *Tunnel) Start() error {
 
 	select {
 	case err = <-t.done:
+		if t.client != nil {
+			t.client.Conn.Close()
+		}
 		return err
 	}
 }
@@ -192,16 +190,19 @@ func (t *Tunnel) proxy() (net.Conn, error) {
 		return nil, fmt.Errorf("error generating ssh client config: %s", err)
 	}
 
-	serverConn, err := ssh.Dial("tcp", t.server.Address, c)
-	if err != nil {
-		return nil, fmt.Errorf("server dial error: %s", err)
+	if t.client == nil {
+		t.client, err = ssh.Dial("tcp", t.server.Address, c)
+		if err != nil {
+			return nil, fmt.Errorf("server dial error: %s", err)
+		}
+
+		log.WithFields(log.Fields{
+			"server": t.server,
+		}).Debug("new connection established to server")
+
 	}
 
-	log.WithFields(log.Fields{
-		"server": t.server,
-	}).Debug("new connection established to server")
-
-	remoteConn, err := serverConn.Dial("tcp", t.remote)
+	remoteConn, err := t.client.Dial("tcp", t.remote)
 	if err != nil {
 		return nil, fmt.Errorf("remote dial error: %s", err)
 	}
@@ -306,4 +307,31 @@ func reconcileKey(givenKey, resolvedKey string) string {
 	}
 
 	return ""
+}
+
+func reconcileLocal(givenLocal, resolvedLocal string) string {
+
+	if givenLocal == "" && resolvedLocal != "" {
+		return resolvedLocal
+	}
+	if givenLocal == "" {
+		return "127.0.0.1:0"
+	}
+	if strings.HasPrefix(givenLocal, ":") {
+		return fmt.Sprintf("127.0.0.1%s", givenLocal)
+	}
+
+	return givenLocal
+}
+
+func reconcileRemote(givenRemote, resolvedRemote string) string {
+
+	if givenRemote == "" && resolvedRemote != "" {
+		return resolvedRemote
+	}
+	if strings.HasPrefix(givenRemote, ":") {
+		return fmt.Sprintf("127.0.0.1%s", givenRemote)
+	}
+
+	return givenRemote
 }
