@@ -8,21 +8,33 @@ import (
 	"github.com/davrodpin/mole/cli"
 	"github.com/davrodpin/mole/storage"
 	"github.com/davrodpin/mole/tunnel"
+	uuid "github.com/satori/go.uuid"
+	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
 )
 
 var version = "unversioned"
+var instancesDir string
 
 func main() {
+
 	app := cli.New(os.Args)
 	err := app.Parse()
+
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		app.PrintUsage()
 		os.Exit(1)
 	}
-
 	log.SetOutput(os.Stdout)
+
+	instancesDir = fmt.Sprintf("%s/.mole/instances", os.Getenv("HOME"))
+
+	err = createInstancesDir()
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
+	}
 
 	switch app.Command {
 	case "help":
@@ -49,12 +61,103 @@ func main() {
 		if err != nil {
 			os.Exit(1)
 		}
+	case "stop":
+		err := stopDaemon(*app)
+		if err != nil {
+			os.Exit(1)
+		}
 	case "aliases":
 		err := lsAliases(*app)
 		if err != nil {
 			os.Exit(1)
 		}
 	}
+}
+
+func stopDaemon(app cli.App) error {
+	daemonDir := fmt.Sprintf("%s/%s", instancesDir, app.Stop)
+	pidPathName := fmt.Sprintf("%s/pid", daemonDir)
+	logPathName := fmt.Sprintf("%s/mole.log", daemonDir)
+
+	if _, err := os.Stat(pidPathName); os.IsNotExist(err) {
+		return fmt.Errorf("An instance of mole, %s, is not running.", app.Stop)
+	}
+
+	cntxt := &daemon.Context{
+		PidFileName: pidPathName,
+		PidFilePerm: 0644,
+		LogFileName: logPathName,
+		LogFilePerm: 0640,
+		Umask:       027,
+		Args:        os.Args,
+	}
+
+	d, err := cntxt.Search()
+
+	err = d.Kill()
+	if err != nil {
+		return err
+	}
+
+	removePath := fmt.Sprintf("%s/%s", instancesDir, app.Stop)
+	err = os.RemoveAll(removePath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createInstancesDir() error {
+	_, err := os.Stat(instancesDir)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(instancesDir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func startDaemonProcess(aliasName string) error {
+	cntxt := &daemon.Context{
+		PidFileName: "pid",
+		PidFilePerm: 0644,
+		LogFileName: "mole.log",
+		LogFilePerm: 0640,
+		Umask:       027,
+		Args:        os.Args,
+	}
+	d, err := cntxt.Reborn()
+	if err != nil {
+		return err
+	}
+	if d != nil {
+		daemonDir := fmt.Sprintf("%s/%s", instancesDir, aliasName)
+		pidPathName := fmt.Sprintf("%s/pid", daemonDir)
+		logPathName := fmt.Sprintf("%s/mole.log", daemonDir)
+		if _, err := os.Stat(daemonDir); os.IsNotExist(err) {
+			err := os.Mkdir(daemonDir, 0755)
+			if err != nil {
+				return err
+			}
+		}
+		if _, err := os.Stat(pidPathName); !os.IsNotExist(err) {
+			return fmt.Errorf("An instance of mole, %s, seems to be already running.", aliasName)
+		}
+		err := os.Rename("pid", pidPathName)
+		if err != nil {
+			return err
+		}
+		err = os.Rename("mole.log", logPathName)
+		if err != nil {
+			return err
+		}
+		log.Infof("execute \"mole -stop %s\" if you like to stop it at any time", aliasName)
+		os.Exit(0)
+	}
+	defer cntxt.Release()
+	return nil
 }
 
 func startFromAlias(app cli.App) error {
@@ -67,10 +170,32 @@ func startFromAlias(app cli.App) error {
 		return err
 	}
 
-	return start(alias2app(conf))
+	appFromAlias := alias2app(conf)
+	appFromAlias.Alias = app.Alias
+	// if use -detach when -start but none -detach in storage
+	if app.Detach {
+		appFromAlias.Detach = true
+	}
+
+	return start(appFromAlias)
 }
 
 func start(app cli.App) error {
+	if app.Detach {
+		var alias string
+		if app.Alias != "" {
+			alias = app.Alias
+		} else {
+			alias = uuid.Must(uuid.NewV4()).String()[:8]
+		}
+		err := startDaemonProcess(alias)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"daemon": app.Alias,
+			}).Errorf("error starting mole: %v", err)
+			return err
+		}
+	}
 	if app.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -149,6 +274,7 @@ func app2alias(app cli.App) *storage.Tunnel {
 		Verbose: app.Verbose,
 		Help:    app.Help,
 		Version: app.Version,
+		Detach:  app.Detach,
 	}
 }
 
@@ -171,5 +297,6 @@ func alias2app(t *storage.Tunnel) cli.App {
 		Verbose: t.Verbose,
 		Help:    t.Help,
 		Version: t.Version,
+		Detach:  t.Detach,
 	}
 }

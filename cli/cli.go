@@ -26,6 +26,8 @@ type App struct {
 	Alias       string
 	Start       string
 	AliasDelete bool
+	Detach      bool
+	Stop        string
 	AliasList   bool
 }
 
@@ -51,7 +53,8 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
 	f.BoolVar(&c.Help, "help", false, "list all options available")
 	f.BoolVar(&c.Version, "version", false, "display the mole version")
-
+	f.BoolVar(&c.Detach, "detach", false, "(optional) run process in background")
+	f.StringVar(&c.Stop, "stop", "", "stop background process")
 	f.Parse(c.args[1:])
 
 	if c.Help {
@@ -67,6 +70,8 @@ func (c *App) Parse() error {
 	} else if c.Start != "" {
 		c.Command = "start-from-alias"
 		c.Alias = c.Start
+	} else if c.Stop != "" {
+		c.Command = "stop"
 	} else {
 		c.Command = "start"
 	}
@@ -105,7 +110,7 @@ func (c App) Validate() error {
 // use the tool.
 func (c *App) PrintUsage() {
 	fmt.Fprintf(os.Stderr, "%s\n\n", `usage:
-	mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole [-v] [-detach] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
 	mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
 	mole -alias <alias_name> -delete
 	mole -start <alias_name>
@@ -116,8 +121,8 @@ func (c *App) PrintUsage() {
 
 // String returns a string representation of an App.
 func (c App) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t]",
-		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t]",
+		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach)
 }
 
 // HostInput holds information about a host

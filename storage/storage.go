@@ -23,11 +23,12 @@ type Tunnel struct {
 	Verbose bool   `toml:"verbose"`
 	Help    bool   `toml:"help"`
 	Version bool   `toml:"version"`
+	Detach  bool   `toml:"detach"`
 }
 
 func (t Tunnel) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t]",
-		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t]",
+		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version, t.Detach)
 }
 
 // Save stores Tunnel to the Store.
