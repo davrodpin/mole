@@ -80,7 +80,7 @@ func stopDaemon(app cli.App) error {
 	logPathName := fmt.Sprintf("%s/mole.log", daemonDir)
 
 	if _, err := os.Stat(pidPathName); os.IsNotExist(err) {
-		return fmt.Errorf("An instance of mole, %s, is not running.", app.Stop)
+		return fmt.Errorf("an instance of mole, %s, is not running", app.Stop)
 	}
 
 	cntxt := &daemon.Context{
@@ -143,7 +143,7 @@ func startDaemonProcess(aliasName string) error {
 			}
 		}
 		if _, err := os.Stat(pidPathName); !os.IsNotExist(err) {
-			return fmt.Errorf("An instance of mole, %s, seems to be already running.", aliasName)
+			return fmt.Errorf("an instance of mole, %s, seems to be already running", aliasName)
 		}
 		err := os.Rename("pid", pidPathName)
 		if err != nil {
