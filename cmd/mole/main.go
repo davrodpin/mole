@@ -93,6 +93,9 @@ func stopDaemon(app cli.App) error {
 	}
 
 	d, err := cntxt.Search()
+	if err != nil {
+		return err
+	}
 
 	err = d.Kill()
 	if err != nil {

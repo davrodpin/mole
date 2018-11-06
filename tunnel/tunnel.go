@@ -40,7 +40,6 @@ func NewServer(user, address, key string) (*Server, error) {
 
 	c, err := NewSSHConfigFile()
 	if err != nil {
-		hostname = host
 		return nil, fmt.Errorf("error accessing %s: %v", host, err)
 	}
 
