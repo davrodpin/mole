@@ -15,6 +15,10 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
+const (
+	HostMissing = "server host has to be provided as part of the server address"
+)
+
 // Server holds the SSH Server attributes used for the client to connect to it.
 type Server struct {
 	Name    string
@@ -50,7 +54,7 @@ func NewServer(user, address, key string) (*Server, error) {
 	key = reconcileKey(key, h.Key)
 
 	if host == "" {
-		return nil, fmt.Errorf("server host has to be provided as part of the server address")
+		return nil, fmt.Errorf(HostMissing)
 	}
 
 	if hostname == "" {
@@ -89,11 +93,14 @@ func (s Server) String() string {
 // Tunnel represents the ssh tunnel used to forward a local connection to a
 // a remote endpoint through a ssh server.
 type Tunnel struct {
-	local  string
-	server *Server
-	remote string
-	done   chan error
-	client *ssh.Client
+	// Ready tells when the Tunnel is ready to accept connections
+	Ready    chan bool
+	local    string
+	server   *Server
+	remote   string
+	done     chan error
+	client   *ssh.Client
+	listener net.Listener
 }
 
 // New creates a new instance of Tunnel.
@@ -108,6 +115,7 @@ func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
 	remoteAddress = reconcileRemote(remoteAddress, sh.LocalForward.Remote)
 
 	return &Tunnel{
+		Ready:  make(chan bool, 1),
 		local:  localAddress,
 		server: server,
 		remote: remoteAddress,
@@ -118,13 +126,11 @@ func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
 // Start creates a new ssh tunnel, allowing data exchange between the local and
 // remote endpoints.
 func (t *Tunnel) Start() error {
-	local, err := net.Listen("tcp", t.local)
+	_, err := t.Listen()
 	if err != nil {
 		return err
 	}
-	defer local.Close()
-
-	t.local = local.Addr().String()
+	defer t.listener.Close()
 
 	log.Debugf("tunnel: %s", t)
 
@@ -132,9 +138,10 @@ func (t *Tunnel) Start() error {
 		"local_address": t.local,
 	}).Info("listening on local address")
 
-	go func(l net.Listener, t *Tunnel) {
+	go func(t *Tunnel) {
 		for {
-			conn, err := l.Accept()
+			t.Ready <- true
+			conn, err := t.listener.Accept()
 			if err != nil {
 				t.done <- fmt.Errorf("error while establishing new connection: %v", err)
 				return
@@ -150,7 +157,7 @@ func (t *Tunnel) Start() error {
 				return
 			}
 		}
-	}(local, t)
+	}(t)
 
 	select {
 	case err = <-t.done:
@@ -159,6 +166,24 @@ func (t *Tunnel) Start() error {
 		}
 		return err
 	}
+}
+
+// Listen binds the local address configured on Tunnel.
+func (t *Tunnel) Listen() (net.Listener, error) {
+
+	if t.listener != nil {
+		return t.listener, nil
+	}
+
+	local, err := net.Listen("tcp", t.local)
+	if err != nil {
+		return nil, err
+	}
+
+	t.listener = local
+	t.local = local.Addr().String()
+
+	return t.listener, nil
 }
 
 func (t *Tunnel) forward(localConn net.Conn) error {
