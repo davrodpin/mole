@@ -1,12 +1,67 @@
 package cli_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/davrodpin/mole/cli"
 )
 
-func TestHandleArgs(t *testing.T) {
+func TestHostInput(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected cli.HostInput
+	}{
+		{
+			"test",
+			cli.HostInput{User: "", Host: "test", Port: ""},
+		},
+		{
+			"user@test",
+			cli.HostInput{User: "user", Host: "test", Port: ""},
+		},
+		{
+			"user@test:2222",
+			cli.HostInput{User: "user", Host: "test", Port: "2222"},
+		},
+		{
+			"test-1",
+			cli.HostInput{User: "", Host: "test-1", Port: ""},
+		},
+		{
+			"test-1-2-xy",
+			cli.HostInput{User: "", Host: "test-1-2-xy", Port: ""},
+		},
+		{
+			"test.com",
+			cli.HostInput{User: "", Host: "test.com", Port: ""},
+		},
+		{
+			"test_1",
+			cli.HostInput{User: "", Host: "test_1", Port: ""},
+		},
+		{
+			"user@test_1",
+			cli.HostInput{User: "user", Host: "test_1", Port: ""},
+		},
+		{
+			"user@test_1:2222",
+			cli.HostInput{User: "user", Host: "test_1", Port: "2222"},
+		},
+	}
+
+	var h cli.HostInput
+	for _, test := range tests {
+		h = cli.HostInput{}
+		h.Set(test.input)
+
+		if !reflect.DeepEqual(test.expected, h) {
+			t.Errorf("test failed. Expected: %v, value: %v", test.expected, h)
+		}
+	}
+}
+
+func TestCommand(t *testing.T) {
 
 	tests := []struct {
 		args     []string

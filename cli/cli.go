@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var re = regexp.MustCompile("(?P<user>.+@)?(?P<host>[0-9a-zA-Z\\.-]+)?(?P<port>:[0-9]+)?")
+var re = regexp.MustCompile(`(?P<user>.+@)?(?P<host>[[:alpha:][:digit:]\_\-\.]+)?(?P<port>:[0-9]+)?`)
 
 // App contains main settings of application.
 type App struct {
