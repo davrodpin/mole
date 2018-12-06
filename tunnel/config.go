@@ -70,13 +70,8 @@ func (r SSHConfigFile) Get(host string) *SSHHost {
 
 func (r SSHConfigFile) getHostname(host string) string {
 	hostname, err := r.sshConfig.Get(host, "Hostname")
-
 	if err != nil {
-		return host
-	}
-
-	if hostname == "" {
-		hostname = host
+		return ""
 	}
 
 	return hostname

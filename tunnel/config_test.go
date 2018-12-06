@@ -42,7 +42,7 @@ Host example3
 		{
 			"example2",
 			&SSHHost{
-				Hostname:     "example2",
+				Hostname:     "",
 				Port:         "",
 				User:         "",
 				Key:          "",
@@ -52,7 +52,7 @@ Host example3
 		{
 			"example3",
 			&SSHHost{
-				Hostname:     "example3",
+				Hostname:     "",
 				Port:         "",
 				User:         "",
 				Key:          "",
