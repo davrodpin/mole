@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -126,6 +127,8 @@ func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
 // Start creates a new ssh tunnel, allowing data exchange between the local and
 // remote endpoints.
 func (t *Tunnel) Start() error {
+	var once sync.Once
+
 	_, err := t.Listen()
 	if err != nil {
 		return err
@@ -140,7 +143,11 @@ func (t *Tunnel) Start() error {
 
 	go func(t *Tunnel) {
 		for {
-			t.Ready <- true
+
+			once.Do(func() {
+				t.Ready <- true
+			})
+
 			conn, err := t.listener.Accept()
 			if err != nil {
 				t.done <- fmt.Errorf("error while establishing new connection: %v", err)

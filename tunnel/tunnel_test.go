@@ -172,11 +172,9 @@ func TestTunnel(t *testing.T) {
 
 	select {
 	case <-tun.Ready:
-		//FIXME
-		t.Log(":)")
+		t.Log("tunnel is ready to accept connections")
 	case <-time.After(1 * time.Second):
-		//FIXME
-		t.Errorf(":(")
+		t.Errorf("no connection after a while")
 		return
 	}
 
