@@ -83,7 +83,7 @@ The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 ```sh
 $ make test-env
 <lots of output messages here>
-$ mole -insecure -local :21112 -remote 192.168.33.11:80 -server mole@127.0.0.1:22122 -key test-env/key
+$ mole -insecure -local :21112 -remote 192.168.33.11:80 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key
 INFO[0000] listening on local address                    local_address="127.0.0.1:21112"
 $ curl 127.0.0.1:21112
 :)

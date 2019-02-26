@@ -1,38 +1,30 @@
 package tunnel
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
 	HostMissing = "server host has to be provided as part of the server address"
 )
 
-//ReadPassword holds the function used for reading password from user
-var ReadPassword = terminal.ReadPassword
-
 // Server holds the SSH Server attributes used for the client to connect to it.
 type Server struct {
 	Name    string
 	Address string
 	User    string
-	Key     string
+	Key     *PemKey
 	// Insecure is a flag to indicate if the host keys should be validated.
 	Insecure bool
 }
@@ -83,21 +75,22 @@ func NewServer(user, address, key string) (*Server, error) {
 		key = filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
 	}
 
-	if _, err := os.Stat(key); err != nil {
-		return nil, fmt.Errorf("key file does not exists: %s: %v", key, err)
+	pk, err := NewPemKey(key, "")
+	if err != nil {
+		return nil, fmt.Errorf("error while reading key %s: %v", key, err)
 	}
 
 	return &Server{
 		Name:    host,
 		Address: fmt.Sprintf("%s:%s", hostname, port),
 		User:    user,
-		Key:     key,
+		Key:     pk,
 	}, nil
 }
 
 // String provided a string representation of a Server.
 func (s Server) String() string {
-	return fmt.Sprintf("[name=%s, address=%s, user=%s, key=%s]", s.Name, s.Address, s.User, s.Key)
+	return fmt.Sprintf("[name=%s, address=%s, user=%s]", s.Name, s.Address, s.User)
 }
 
 // Tunnel represents the ssh tunnel used to forward a local connection to a
@@ -255,42 +248,8 @@ func (t *Tunnel) proxy() (net.Conn, error) {
 	return remoteConn, nil
 }
 
-func loadPrivateKey(key []byte) (ssh.Signer, error) {
-	var signer ssh.Signer
-	pemBlock, extra := pem.Decode(key)
-	if pemBlock == nil && len(extra) > 0 {
-		return nil, fmt.Errorf("error while parsing key %s: no PEM data found", key)
-	}
-	if len(extra) != 0 {
-		return nil, fmt.Errorf("extra data in encoded key")
-	}
-	if x509.IsEncryptedPEMBlock(pemBlock) {
-		fmt.Printf("Please enter your passphrase: ")
-		passphrase, err := ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return nil, err
-		}
-		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, passphrase)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		var err error
-		signer, err = ssh.ParsePrivateKey(key)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return signer, nil
-}
-
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
-	key, err := ioutil.ReadFile(server.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	signer, err := loadPrivateKey(key)
+	signer, err := server.Key.Parse()
 	if err != nil {
 		return nil, err
 	}

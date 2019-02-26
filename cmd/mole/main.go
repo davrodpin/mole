@@ -4,19 +4,26 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
 
+	"github.com/awnumar/memguard"
 	"github.com/davrodpin/mole/cli"
 	"github.com/davrodpin/mole/storage"
 	"github.com/davrodpin/mole/tunnel"
 	uuid "github.com/satori/go.uuid"
 	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var version = "unversioned"
 var instancesDir string
 
 func main() {
+
+	// memguard is used to securely keep sensitive information in memory.
+	// This call makes sure all data will be destroy when the program exits.
+	defer memguard.DestroyAll()
 
 	app := cli.New(os.Args)
 	err := app.Parse()
@@ -199,6 +206,7 @@ func start(app cli.App) error {
 			return err
 		}
 	}
+
 	if app.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -215,6 +223,14 @@ func start(app cli.App) error {
 	}
 
 	s.Insecure = app.InsecureMode
+
+	s.Key.HandlePassphrase(func() ([]byte, error) {
+		fmt.Printf("The key provided is secured by a password. Please provide it below:\n")
+		fmt.Printf("Password: ")
+		p, err := terminal.ReadPassword(int(syscall.Stdin))
+		fmt.Printf("\n")
+		return p, err
+	})
 
 	log.Debugf("server: %s", s)
 

@@ -25,6 +25,9 @@ var publicKeyPath string
 var knownHostsPath string
 
 func TestServerOptions(t *testing.T) {
+	k1, _ := NewPemKey("testdata/.ssh/id_rsa", "")
+	k2, _ := NewPemKey("testdata/.ssh/other_key", "")
+
 	tests := []struct {
 		user          string
 		address       string
@@ -40,7 +43,7 @@ func TestServerOptions(t *testing.T) {
 				Name:    "172.17.0.10",
 				Address: "172.17.0.10:2222",
 				User:    "mole_user",
-				Key:     "testdata/.ssh/id_rsa",
+				Key:     k1,
 			},
 			nil,
 		},
@@ -52,7 +55,7 @@ func TestServerOptions(t *testing.T) {
 				Name:    "test",
 				Address: "127.0.0.1:2222",
 				User:    "mole_test",
-				Key:     "testdata/.ssh/id_rsa",
+				Key:     k1,
 			},
 			nil,
 		},
@@ -64,7 +67,7 @@ func TestServerOptions(t *testing.T) {
 				Name:    "test.something",
 				Address: "172.17.0.1:2223",
 				User:    "mole_test2",
-				Key:     "testdata/.ssh/other_key",
+				Key:     k2,
 			},
 			nil,
 		},
@@ -76,7 +79,7 @@ func TestServerOptions(t *testing.T) {
 				Name:    "test",
 				Address: "127.0.0.1:3333",
 				User:    "mole_user",
-				Key:     "testdata/.ssh/other_key",
+				Key:     k2,
 			},
 			nil,
 		},
@@ -167,7 +170,6 @@ func TestTunnelOptions(t *testing.T) {
 
 }
 
-//TODO teardown the tunnel
 func TestTunnel(t *testing.T) {
 	expected := "ABC"
 	tun := prepareTunnel(t, false)
@@ -273,25 +275,6 @@ func TestMain(m *testing.M) {
 	os.RemoveAll(sshDir)
 
 	os.Exit(code)
-}
-
-func TestLoadPrivateKey(t *testing.T) {
-	b, err := ioutil.ReadFile(encryptedKeyPath)
-	if err != nil {
-		t.Errorf("error reading encrypted key file: %v", err)
-	}
-
-	ReadPassword = func(fd int) ([]byte, error) {
-		passByte := []byte("password")
-		return passByte, nil
-	}
-	p, err := loadPrivateKey(b)
-	if p == nil {
-		t.Errorf("Signer not received from private key: %v", err)
-	}
-	if err != nil {
-		t.Errorf("Decoding encrypted key failed: %v", err)
-	}
 }
 
 // prepareTunnel creates a Tunnel object making sure all infrastructure
