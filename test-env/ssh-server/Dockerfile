@@ -11,4 +11,6 @@ RUN mkdir -p /home/mole/.ssh && chown mole:mole /home/mole/.ssh
 
 RUN chgrp mole /usr/sbin/tcpdump && chmod 750 /usr/sbin/tcpdump && setcap cap_net_raw+ep /usr/sbin/tcpdump
 
+COPY authorized_keys /home/mole/.ssh/
+
 CMD /usr/sbin/sshd -D

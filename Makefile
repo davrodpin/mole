@@ -51,6 +51,5 @@ mole-ssh: rm-mole-ssh
 		--name mole_ssh mole_ssh:latest
 
 test-env: add-network mole-http mole-ssh
-	@bash test-env/provision.sh
 
 rm-test-env: rm-mole-http rm-mole-ssh rm-network
