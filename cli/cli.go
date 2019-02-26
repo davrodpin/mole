@@ -56,7 +56,7 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.Version, "version", false, "display the mole version")
 	f.BoolVar(&c.Detach, "detach", false, "(optional) run process in background")
 	f.StringVar(&c.Stop, "stop", "", "stop background process")
-	f.BoolVar(&c.InsecureMode, "insecure", false, "(optional) ignore unknown host keys when connecting to an ssh server")
+	f.BoolVar(&c.InsecureMode, "insecure", false, "(optional) skip host key validation when connecting to ssh server")
 
 	f.Parse(c.args[1:])
 
@@ -113,7 +113,7 @@ func (c App) Validate() error {
 // use the tool.
 func (c *App) PrintUsage() {
 	fmt.Fprintf(os.Stderr, "%s\n\n", `usage:
-	mole [-v] [-detach] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole [-v] [-insecure] [-detach] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
 	mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
 	mole -alias <alias_name> -delete
 	mole -start <alias_name>

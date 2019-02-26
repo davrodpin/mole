@@ -22,11 +22,12 @@ const (
 
 // Server holds the SSH Server attributes used for the client to connect to it.
 type Server struct {
-	Name     string
-	Address  string
-	User     string
-	Key      string
-	insecure bool
+	Name    string
+	Address string
+	User    string
+	Key     string
+	// Insecure is a flag to indicate if the host keys should be validated.
+	Insecure bool
 }
 
 // NewServer creates a new instance of Server using $HOME/.ssh/config to
@@ -90,11 +91,6 @@ func NewServer(user, address, key string) (*Server, error) {
 // String provided a string representation of a Server.
 func (s Server) String() string {
 	return fmt.Sprintf("[name=%s, address=%s, user=%s, key=%s]", s.Name, s.Address, s.User, s.Key)
-}
-
-// Set whether or not to check the known_hosts file
-func (s *Server) SetInsecureMode(flag bool) {
-	s.insecure = flag
 }
 
 // Tunnel represents the ssh tunnel used to forward a local connection to a
@@ -263,7 +259,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 		return nil, err
 	}
 
-	callback, err := knownHostsCallback(server)
+	clb, err := knownHostsCallback(server.Insecure)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +269,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
-		HostKeyCallback: callback,
+		HostKeyCallback: clb,
 		Timeout:         3 * time.Second,
 	}, nil
 }
@@ -285,23 +281,25 @@ func copyConn(writer, reader net.Conn) {
 	}
 }
 
-func knownHostsCallback(s Server) (ssh.HostKeyCallback, error) {
-	knownHostFile := filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts")
+func knownHostsCallback(insecure bool) (ssh.HostKeyCallback, error) {
+	var clb func(hostname string, remote net.Addr, key ssh.PublicKey) error
 
-	log.Debugf("known_hosts file used: %s", knownHostFile)
-
-	secureCallback, err := knownhosts.New(knownHostFile)
-	if err != nil {
-		return nil, fmt.Errorf("error while parsing 'known_hosts' file: %s: %v", knownHostFile, err)
-	}
-
-	callback := func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-		if s.insecure {
+	if insecure {
+		clb = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			return nil
 		}
-		return secureCallback(hostname, remote, key)
+	} else {
+		var err error
+		knownHostFile := filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts")
+		log.Debugf("known_hosts file used: %s", knownHostFile)
+
+		clb, err = knownhosts.New(knownHostFile)
+		if err != nil {
+			return nil, fmt.Errorf("error while parsing 'known_hosts' file: %s: %v", knownHostFile, err)
+		}
 	}
-	return callback, nil
+
+	return clb, nil
 }
 
 func reconcileHostname(givenHostname, resolvedHostname string) string {

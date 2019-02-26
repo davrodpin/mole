@@ -166,9 +166,10 @@ func TestTunnelOptions(t *testing.T) {
 
 }
 
+//TODO teardown the tunnel
 func TestTunnel(t *testing.T) {
 	expected := "ABC"
-	tun := prepareTunnel(t)
+	tun := prepareTunnel(t, false)
 
 	select {
 	case <-tun.Ready:
@@ -191,6 +192,37 @@ func TestTunnel(t *testing.T) {
 	if expected != response {
 		t.Errorf("expected: %s, value: %s", expected, response)
 	}
+
+	tun.Stop()
+}
+
+func TestInsecureTunnel(t *testing.T) {
+	expected := "ABC"
+	tun := prepareTunnel(t, true)
+
+	select {
+	case <-tun.Ready:
+		t.Log("tunnel is ready to accept connections")
+	case <-time.After(1 * time.Second):
+		t.Errorf("no connection after a while")
+		return
+	}
+
+	resp, err := http.Get(fmt.Sprintf("http://%s/%s", tun.listener.Addr(), expected))
+	if err != nil {
+		t.Errorf("error while making local connection: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	response := string(body)
+
+	if expected != response {
+		t.Errorf("expected: %s, value: %s", expected, response)
+	}
+
+	tun.Stop()
 }
 
 func TestRandomLocalPort(t *testing.T) {
@@ -244,13 +276,18 @@ func TestMain(m *testing.M) {
 
 // prepareTunnel creates a Tunnel object making sure all infrastructure
 // dependencies (ssh and http servers) are ready.
-func prepareTunnel(t *testing.T) *Tunnel {
-	sshAddr := createSSHServer(keyPath)
-	generateKnownHosts(sshAddr.String(), publicKeyPath, knownHostsPath)
-	s, _ := NewServer("mole", sshAddr.String(), "")
+func prepareTunnel(t *testing.T, insecure bool) *Tunnel {
+	ssh := createSSHServer(keyPath)
+	srv, _ := NewServer("mole", ssh.Addr().String(), "")
 
-	httpAddr := createWebServer()
-	tun := &Tunnel{local: "127.0.0.1:0", server: s, remote: httpAddr.String(), done: make(chan error), Ready: make(chan bool, 1)}
+	srv.Insecure = insecure
+
+	if !insecure {
+		generateKnownHosts(ssh.Addr().String(), publicKeyPath, knownHostsPath)
+	}
+
+	web := createWebServer()
+	tun := &Tunnel{local: "127.0.0.1:0", server: srv, remote: web.Addr().String(), done: make(chan error), Ready: make(chan bool, 1)}
 
 	go func(t *testing.T) {
 		err := tun.Start()
@@ -322,19 +359,24 @@ func get(client http.Client, resource string) (string, error) {
 //
 // Example: If the request URI is /this-is-a-test, the response will be
 // this-is-a-test
-func createWebServer() net.Addr {
+func createWebServer() net.Listener {
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, r.URL.Path[1:])
 	}
-	http.HandleFunc("/", handler)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler)
+
+	server := &http.Server{
+		Handler: mux,
+	}
+
 	l, _ := net.Listen("tcp", "127.0.0.1:0")
 
-	go func(l net.Listener) {
-		http.Serve(l, nil)
-	}(l)
+	go server.Serve(l)
 
-	return l.Addr()
+	return l
 }
 
 // createSSHServer starts a SSH server that authenticates connections using
@@ -347,7 +389,7 @@ func createWebServer() net.Addr {
 // References:
 // https://gist.github.com/jpillora/b480fde82bff51a06238
 // https://tools.ietf.org/html/rfc4254#section-7.2
-func createSSHServer(keyPath string) net.Addr {
+func createSSHServer(keyPath string) net.Listener {
 	conf := &ssh.ServerConfig{
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			return &ssh.Permissions{}, nil
@@ -398,7 +440,7 @@ func createSSHServer(keyPath string) net.Addr {
 		}
 	}(l)
 
-	return l.Addr()
+	return l
 }
 
 // generateKnownHosts creates a new "known_hosts" file on a given path with a

@@ -214,7 +214,7 @@ func start(app cli.App) error {
 		return err
 	}
 
-	s.SetInsecureMode(app.InsecureMode)
+	s.Insecure = app.InsecureMode
 
 	log.Debugf("server: %s", s)
 
