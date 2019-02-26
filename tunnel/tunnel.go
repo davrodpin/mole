@@ -20,7 +20,6 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-
 const (
 	HostMissing = "server host has to be provided as part of the server address"
 )
@@ -34,6 +33,7 @@ type Server struct {
 	Address string
 	User    string
 	Key     string
+	Signer  *ssh.Signer
 	// Insecure is a flag to indicate if the host keys should be validated.
 	Insecure bool
 }
@@ -256,9 +256,16 @@ func (t *Tunnel) proxy() (net.Conn, error) {
 	return remoteConn, nil
 }
 
-func loadPrivateKey(key []byte) (ssh.Signer, error) {
+func LoadPrivateKey(key string) (ssh.Signer, error) {
+
+	keyBytes, err := ioutil.ReadFile(key)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Key path is " + key)
+
 	var signer ssh.Signer
-	pemBlock, extra := pem.Decode(key)
+	pemBlock, extra := pem.Decode(keyBytes)
 	if pemBlock == nil && len(extra) > 0 {
 		return nil, fmt.Errorf("error while parsing key %s: no PEM data found", key)
 	}
@@ -271,13 +278,14 @@ func loadPrivateKey(key []byte) (ssh.Signer, error) {
 		if err != nil {
 			return nil, err
 		}
-		signer, err = ssh.ParsePrivateKeyWithPassphrase(key, passphrase)
+		fmt.Println()
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(keyBytes, passphrase)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		var err error
-		signer, err = ssh.ParsePrivateKey(key)
+		signer, err = ssh.ParsePrivateKey(keyBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -286,15 +294,6 @@ func loadPrivateKey(key []byte) (ssh.Signer, error) {
 }
 
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
-	key, err := ioutil.ReadFile(server.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	signer, err := loadPrivateKey(key)
-	if err != nil {
-		return nil, err
-	}
 
 	clb, err := knownHostsCallback(server.Insecure)
 	if err != nil {
@@ -304,7 +303,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	return &ssh.ClientConfig{
 		User: server.User,
 		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
+			ssh.PublicKeys(*server.Signer),
 		},
 		HostKeyCallback: clb,
 		Timeout:         3 * time.Second,

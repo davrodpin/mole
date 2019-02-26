@@ -276,16 +276,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestLoadPrivateKey(t *testing.T) {
-	b, err := ioutil.ReadFile(encryptedKeyPath)
-	if err != nil {
-		t.Errorf("error reading encrypted key file: %v", err)
-	}
 
 	ReadPassword = func(fd int) ([]byte, error) {
 		passByte := []byte("password")
 		return passByte, nil
 	}
-	p, err := loadPrivateKey(b)
+	p, err := LoadPrivateKey(encryptedKeyPath)
 	if p == nil {
 		t.Errorf("Signer not received from private key: %v", err)
 	}
@@ -301,6 +297,15 @@ func prepareTunnel(t *testing.T, insecure bool) *Tunnel {
 	srv, _ := NewServer("mole", ssh.Addr().String(), "")
 
 	srv.Insecure = insecure
+
+	p, err := LoadPrivateKey(keyPath)
+	if p == nil {
+		t.Errorf("Signer not received from private key: %v", err)
+	}
+	if err != nil {
+		t.Errorf("Decoding key failed: %v", err)
+	}
+	srv.Signer = &p
 
 	if !insecure {
 		generateKnownHosts(ssh.Addr().String(), publicKeyPath, knownHostsPath)

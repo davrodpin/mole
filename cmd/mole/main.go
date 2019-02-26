@@ -214,6 +214,14 @@ func start(app cli.App) error {
 		return err
 	}
 
+	signer, err := tunnel.LoadPrivateKey(s.Key)
+	if err != nil {
+		log.Errorf("error loading key: %v\n", err)
+		return err
+	}
+
+	s.Signer = &signer
+
 	s.Insecure = app.InsecureMode
 
 	log.Debugf("server: %s", s)
