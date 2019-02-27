@@ -4,7 +4,7 @@ test:
 ifneq ($(shell go fmt ./...),)
 	$(error code not formatted. Please run 'go fmt')
 endif
-	@go test ./... -v -race -coverprofile=coverage.txt -covermode=atomic
+  @go test github.com/davrodpin/mole/... -v -race -coverprofile=coverage.txt -covermode=atomic
 cover: test
 	go tool cover -html=coverage.txt
 
