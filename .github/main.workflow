@@ -1,10 +1,10 @@
 workflow "Mole Code Quality Checks" {
   on = "push"
-  resolves = ["Coverage Report"]
+  resolves = ["Check Syntax", "Create Report"]
 }
 
 action "Check Syntax" {
-  uses = "./action-mole"
+  uses = "./.github/actions/syntax"
   env = {
     GO_VERSION = "1.11.5"
   }
@@ -12,17 +12,16 @@ action "Check Syntax" {
 }
 
 action "Run Tests" {
-  needs = [ "Check Syntax" ]
-  uses = "./action-mole"
+  uses = "./.github/actions/test"
   env = {
     GO_VERSION = "1.11.5"
   }
   args = [ "test" ]
 }
 
-action "Coverage Report" {
+action "Create Report" {
   needs = [ "Run Tests" ]
-  uses = "./action-mole"
+  uses = "./.github/actions/report"
   args = [ "report" ]
   secrets = ["GITHUB_TOKEN"]
 }
