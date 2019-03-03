@@ -8,7 +8,6 @@ action "Check Syntax" {
   env = {
     GO_VERSION = "1.11.5"
   }
-  args = [ "syntax" ]
 }
 
 action "Run Tests" {
@@ -16,12 +15,13 @@ action "Run Tests" {
   env = {
     GO_VERSION = "1.11.5"
   }
-  args = [ "test" ]
 }
 
 action "Create Report" {
   needs = [ "Run Tests" ]
   uses = "./.github/actions/report"
-  args = [ "report" ]
+  env = {
+    GO_VERSION = "1.11.5"
+  }
   secrets = ["GITHUB_TOKEN"]
 }

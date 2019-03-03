@@ -61,11 +61,4 @@ mole_syntax() {
   return $retcode
 }
 
-case "$1" in
-  "syntax")
-    mole_syntax
-    ;;
-  *)
-    sh -c "$*"
-    ;;
-esac
+mole_syntax

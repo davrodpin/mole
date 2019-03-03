@@ -21,6 +21,18 @@ log() {
   return 0
 }
 
+mole_create_wksp() {
+  log "info" "Creating Go workspace at ${GOPATH}"
+
+  [ ! -d "${GOPATH}" ] && {
+    mkdir -p $GOPATH/{src,bin,pkg} && \
+      mkdir -p ${MOLE_SRC_PATH} && \
+      cp -a $GITHUB_WORKSPACE/* ${MOLE_SRC_PATH} || return 1
+  }
+
+  return 0
+}
+
 go_install() {
   [ ! -f "$GO" ] && {
     cd ${GO_INSTALL_DIR} && \
@@ -43,8 +55,8 @@ commit() {
     return 1
   }
 
-	payload=`printf "$JSON\n" | sed "s:{{MESSAGE}}:${message}:"`
-	payload=`printf "$payload\n" | sed "s:{{CONTENT}}:${content}:"`
+	payload=`printf "$JSON" | sed "s:{{MESSAGE}}:${message}:"`
+	payload=`printf "$payload" | sed "s:{{CONTENT}}:${content}:"`
 
   uri="/repos/davrodpin/mole/contents/${path}"
   url="https://api.github.com${uri}"
@@ -65,31 +77,133 @@ commit() {
   return 0
 }
 
+mole_test() {
+  go_install && \
+    mole_create_wksp && \
+    log "info" "running mole's tests..." &&  \
+    $GO test github.com/${GITHUB_REPOSITORY}/... -v -race -coverprofile=${COV_PROFILE} -covermode=atomic || return 1
+
+  return 0
+}
+
+get_file_content() {
+  path="$1"
+  ref="$2"
+  debug="$3"
+
+  [ -z "$path" ] && return 2
+
+  [ -z "$ref" ] && ref="master"
+
+  uri="/repos/davrodpin/mole/contents${path}"
+  url="https://api.github.com${uri}?ref=${ref}"
+
+  resp=`curl -H "Authorization: token ${GITHUB_TOKEN}" "${url}" | jq '.content' | sed 's/"//g'`
+
+  [ -z "$response" ] && return 3
+
+  content=`echo "${resp}" | base64 -d -`
+
+  [ -n "${debug}" ] && {
+    printf "url: ${url}\n"
+    printf ">>> response:\n"
+    printf "%s\n\n" "${resp}"
+    printf ">>> content:\n"
+    printf "%s\n\n" "${content}"
+  }
+
+  [ -z "$content" ]  && return 4
+
+  echo "${content}"
+
+  return 0
+}
+
+compare() {
+  this="$1"
+  that="$2"
+
+  this_report=`ls ${MOLE_SRC_PATH}/docs/cov/${this}/*.html | tail -n1`
+
+  [ -z "$this" ] && {
+    log "error" "report file is missing: ${this_report}"
+    return 1
+  }
+
+  #printf "\n---------- DEBUG ----------\n"
+  #get_file_content "/docs/cov/${that}/mole-coverage.html" "master" "debug:on"
+  #printf "\n---------- END OF DEBUG ----------\n"
+  that_report=`get_file_content "/docs/cov/${that}/mole-coverage.html" "master"`
+  case $? in
+    2)
+      log "error" "can't get file content with empty path"
+      return 1
+      ;;
+    3)
+      log "error" "error fetching file content for ${that}"
+      return 1
+      ;;
+    4)
+      log "error" "error decoding file content for ${that}"
+      return 1
+      ;;
+  esac
+
+  this_stats=`cat ${this_report} | grep "<option value=" | sed -n 's/[[:blank:]]\{0,\}<option value="file[0-9]\{1,\}">\(.\{1,\}\) (\([0-9.]\{1,\}\)%)<\/option>/\1,\2/p'`
+  that_stats=`echo "${that_report}" | grep "<option value=" | sed -n 's/[[:blank:]]\{0,\}<option value="file[0-9]\{1,\}">\(.\{1,\}\) (\([0-9.]\{1,\}\)%)<\/option>/\1,\2/p'`
+
+  [ -z "$this_stats" ] || [ -z "$that_stats" ] && {
+    log "error" "could not extract the code coverage numbers from ${this}:${this_report} and ${that}"
+    return 1
+  }
+
+  for stats1 in `printf "%s\n" "$this_stats"`
+  do
+    mod1=`printf "%s\n" "$stats1" | awk -F, '{print $1}'`
+    cov1=`printf "%s\n" "$stats1" | awk -F, '{print $2}'`
+    diff=0
+
+    for stats2 in `printf "%s\n" "$that_stats"`
+    do
+      mod2=`printf "%s\n" "$stats2" | awk -F, '{print $1}'`
+      cov2=`printf "%s\n" "$stats2" | awk -F, '{print $2}'`
+
+      [ "$mod1" = "$mod2" ] && {
+        diff=`printf "%s - %s\n" "$cov1" "$cov2" | bc`
+        break
+      }
+    done
+
+    printf "[mod=%s, cov=%s]\n" "$mod1" "$diff"
+  done
+
+  return 0
+}
 
 mole_report() {
   go_install || return 1
 
   [ ! -f "$COV_PROFILE" ] && {
-    #FIXME don't fail, try to generate the profile instead
-    log "error" "Coverage Profile not found ${COV_PROFILE}"
-    return 1
+    mole_test 2>&1 > /dev/null || return 1
   }
 
   go_install || return 1
 
+  jq '.' ${GITHUB_EVENT_PATH}
+
   prev_commit_id=`jq '.before' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
   commit_id=`jq '.after' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
-  report_name=mole-cov-`date +%s`.html
-  report_path=${GITHUB_WORKSPACE}/${report_name}
+  report_name="mole-coverage.html"
+  report_path=${MOLE_SRC_PATH}/docs/cov/${commit_id} #${GITHUB_WORKSPACE}/${report_name}
 
-  $GO tool cover -html=${COV_PROFILE} -o ${report_path} || {
+  mkdir -p ${report_path} && $GO tool cover -html=${COV_PROFILE} -o ${report_path}/${report_name} || {
     log "error" "error generating coverage report"
     return 1
   }
 
   path="docs/cov/${commit_id}/${report_name}"
 	message="Add new coverage report"
-  content=`base64 -w0 $report_path`
+  content=`base64 -w0 ${report_path}/${report_name}`
 
   commit "$path" "$message" "$content"
   retcode=$?
@@ -99,14 +213,10 @@ mole_report() {
     log "info" "coverage report available on ${report_url}"
   }
 
+  log "info" "comparing coverage between ${commit_id} and ${prev_commit_id}"
+  compare "$commit_id" "$prev_commit_id"
+
   return $retcode
 }
 
-case "$1" in
-  "report")
-    mole_report
-    ;;
-  *)
-    sh -c "$*"
-    ;;
-esac
+mole_report
