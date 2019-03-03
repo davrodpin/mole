@@ -4,7 +4,7 @@ workflow "Mole Code Quality Checks" {
 }
 
 action "Check Syntax" {
-  uses = "./mole-checks"
+  uses = "./action-mole"
   env = {
     GO_VERSION = "1.11.5"
   }
@@ -13,7 +13,7 @@ action "Check Syntax" {
 
 action "Run Tests" {
   needs = [ "Check Syntax" ]
-  uses = "./mole-checks"
+  uses = "./action-mole"
   env = {
     GO_VERSION = "1.11.5"
   }
@@ -22,7 +22,7 @@ action "Run Tests" {
 
 action "Coverage Report" {
   needs = [ "Run Tests" ]
-  uses = "./mole-checks"
+  uses = "./action-mole"
   args = [ "report" ]
   secrets = ["GITHUB_TOKEN"]
 }
