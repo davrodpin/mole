@@ -55,11 +55,4 @@ mole_test() {
   return 0
 }
 
-case "$1" in
-  "test")
-    mole_test
-    ;;
-  *)
-    sh -c "$*"
-    ;;
-esac
+mole_test

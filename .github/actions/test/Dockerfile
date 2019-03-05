@@ -3,7 +3,7 @@ FROM debian:9.7
 LABEL "com.github.actions.name"="action-test"
 LABEL "com.github.actions.description"="Execute Mole's tests"
 LABEL "com.github.actions.icon"="box"
-LABEL "com.github.actions.color"="orange"
+LABEL "com.github.actions.color"="purple"
 
 LABEL "repository"="http://github.com/davrodpin/mole"
 LABEL "homepage"="https://davrodpin.github.io/mole/"

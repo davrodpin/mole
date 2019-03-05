@@ -1,16 +1,16 @@
-# Mole Checks
+# Mole Quality Report Generator
 
-Github Action to validate new changes on [Mole](https://github.com/davrodpin/mole)
+ [Mole](https://github.com/davrodpin/mole)'s Github Action to generate quality
+ metric reports.
 
 ## Environment Variables
 
-Environment variables the action uses.
-
-  * `GO_VERSION`: The version of the Go compiler used to compile and test the change (default: 1.11.5)
+  * `GO_VERSION`: The version of the Go compiler used to generate the reports
+    (default: 1.11.5)
 
 ## Secrets
 
-  * `GITHUB_TOKEN`: Used to publish the new coverage report to Mole's source code repository
+  * `GITHUB_TOKEN`: Used to publish reports on Mole's source code repository.
 
 ## Required Arguments
 
