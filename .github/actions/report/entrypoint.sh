@@ -45,34 +45,39 @@ go_install() {
   return 0
 }
 
-commit() {
-  path="$1"
-  message="$2"
-  content="$3"
+publish() {
+  local_path="$1"
+	remote_path="$2"
 
-  [ -z "$path" ] || [ -z "$message" ] || [ -z "$content" ] && {
-    log "info" "could not publish new report"
+  [ -z "$local_path" ] || [ -z "$remote_path" ] && {
+    log "error" "could not publish new report ${local_path} to ${remote_path}"
     return 1
   }
 
-	payload=`printf "$JSON" | sed "s:{{MESSAGE}}:${message}:"`
-	payload=`printf "$payload" | sed "s:{{CONTENT}}:${content}:"`
+	reponse=`curl --silent --show-error -X POST https://content.dropboxapi.com/2/files/upload \
+    --header "Authorization: Bearer ${DROPBOX_TOKEN}" \
+    --header "Dropbox-API-Arg: {\"path\":\"${remote_path}\", \"mode\":\"overwrite\", \"mute\":true}" \
+    --header "Content-Type: application/octet-stream" \
+    --data-binary @${local_path}`
 
-  uri="/repos/davrodpin/mole/contents/${path}"
-  url="https://api.github.com${uri}"
-
-  log "info" "Adding new coverage report to mole source code repo..."
-  response=`curl -v -H "Authorization: token ${GITHUB_TOKEN}" -X PUT "${url}" -d "${payload}" 2>&1`
-  resp_code=`printf "%s\n" "${response}" | sed -n 's/< HTTP\/\([.0-9]\{1,\}\) \([0-9]\{3\}\)\(.\{0,\}\)/\2/p' | tail -n1`
-
-  log "debug" "PUT ${uri}"
-  log "debug" "response from api.github.com: ${resp_code}"
-
-  [ "${resp_code}" != "201" ] && {
-    log "error" "error while publishing the new report to mole source code repo..."
-    printf "\n\n%s\n\n" "${response}"
+  error=`printf "%s\n" "$resp" | jq 'select(.error != null) | .error'`
+  [ -n "$error" ] && {
+    log "error" "could not publish report ${local_path}"
+    printf "%s\n" "$resp" | jq '.'
     return 1
   }
+
+  resp=`curl --silent --show-error -X POST https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings \
+    --header "Authorization: Bearer ${DROPBOX_TOKEN}" \
+    --header "Content-Type: application/json" \
+    --data "{\"path\": \"${remote_path}\",\"settings\": {\"requested_visibility\": \"public\"}}"`
+
+  printf "%s\n" "$resp" | grep -q 'Error in call' && {
+    log "error" "report was published but could not create public link for ${remote_path}: ${resp}"
+    return 1
+  }
+
+  printf "%s" "$resp" | jq '.url' | sed 's/"//g'
 
   return 0
 }
@@ -86,35 +91,23 @@ mole_test() {
   return 0
 }
 
-get_file_content() {
-  path="$1"
-  ref="$2"
-  debug="$3"
+download_report() {
+  commit="$1"
 
-  [ -z "$path" ] && return 2
+  [ -z "$commit" ] && return 2
 
-  [ -z "$ref" ] && ref="master"
+  resp=`curl --silent --show-error -X POST https://content.dropboxapi.com/2/files/download \
+    --header "Authorization: Bearer ${DROPBOX_TOKEN}" \
+    --header "Dropbox-API-Arg: {\"path\": \"/reports/${commit}/mole-coverage.html\"}"`
 
-  uri="/repos/davrodpin/mole/contents${path}"
-  url="https://api.github.com${uri}?ref=${ref}"
-
-  resp=`curl -H "Authorization: token ${GITHUB_TOKEN}" "${url}" | jq '.content' | sed 's/"//g'`
-
-  [ -z "$response" ] && return 3
-
-  content=`echo "${resp}" | base64 -d -`
-
-  [ -n "${debug}" ] && {
-    printf "url: ${url}\n"
-    printf ">>> response:\n"
-    printf "%s\n\n" "${resp}"
-    printf ">>> content:\n"
-    printf "%s\n\n" "${content}"
+  error=`printf "%s\n" "$resp" | jq 'select(.error != null) | .error' 2> /dev/null`
+  [ -n "$error" ] && {
+    log "error" "could not fetch coverage report for ${commit}"
+    printf "%s\n" "${resp}"
+    return 1
   }
 
-  [ -z "$content" ]  && return 4
-
-  echo "${content}"
+  printf "%s\n" "${resp}"
 
   return 0
 }
@@ -130,10 +123,7 @@ compare() {
     return 1
   }
 
-  #printf "\n---------- DEBUG ----------\n"
-  #get_file_content "/docs/cov/${that}/mole-coverage.html" "master" "debug:on"
-  #printf "\n---------- END OF DEBUG ----------\n"
-  that_report=`get_file_content "/docs/cov/${that}/mole-coverage.html" "master"`
+  that_report=`download_report "${that}"`
   case $? in
     2)
       log "error" "can't get file content with empty path"
@@ -189,29 +179,27 @@ mole_report() {
 
   go_install || return 1
 
-  jq '.' ${GITHUB_EVENT_PATH}
-
   prev_commit_id=`jq '.before' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
   commit_id=`jq '.after' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
   report_name="mole-coverage.html"
-  report_path=${MOLE_SRC_PATH}/docs/cov/${commit_id} #${GITHUB_WORKSPACE}/${report_name}
+  report_path=${MOLE_SRC_PATH}/docs/cov/${commit_id}
 
   mkdir -p ${report_path} && $GO tool cover -html=${COV_PROFILE} -o ${report_path}/${report_name} || {
     log "error" "error generating coverage report"
     return 1
   }
 
-  path="docs/cov/${commit_id}/${report_name}"
-	message="Add new coverage report"
-  content=`base64 -w0 ${report_path}/${report_name}`
-
-  commit "$path" "$message" "$content"
+  log "info" "publishing new coverage report ${remote_path}"
+  link=`publish "${report_path}/${report_name}" "/reports/${commit_id}/${report_name}"`
   retcode=$?
 
-  [ $retcode -eq 0 ] && {
-    report_url="http://htmlpreview.github.io/?https://github.com/${GITHUB_REPOSITORY}/blob/master/${path}"
-    log "info" "coverage report available on ${report_url}"
+  [ $retcode -ne 0 ] && {
+    log "error" "new coverage report could not be published"
+    printf "${link}"
   }
+
+  report_url="http://htmlpreview.github.io/?${link}&raw=1"
+  log "info" "coverage report available on ${report_url}"
 
   log "info" "comparing coverage between ${commit_id} and ${prev_commit_id}"
   compare "$commit_id" "$prev_commit_id"
