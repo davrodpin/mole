@@ -23,5 +23,5 @@ action "Create Report" {
   env = {
     GO_VERSION = "1.11.5"
   }
-  secrets = ["GITHUB_TOKEN"]
+  secrets = ["DROPBOX_TOKEN"]
 }
