@@ -1,6 +1,6 @@
-# Mole Quality Report Generator
+# Mole Quality Report Publisher
 
- [Mole](https://github.com/davrodpin/mole)'s Github Action to generate quality
+ [Mole](https://github.com/davrodpin/mole)'s Github Action to publish quality
  metric reports.
 
 ## Environment Variables
@@ -10,7 +10,8 @@
 
 ## Secrets
 
-  * `GITHUB_TOKEN`: Used to publish reports on Mole's source code repository.
+  * `DROPBOX_TOKEN`: Authentication token allow reports to be uploaded to
+    Dropbox.
 
 ## Required Arguments
 

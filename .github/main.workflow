@@ -1,6 +1,6 @@
 workflow "Mole Code Quality Checks" {
   on = "push"
-  resolves = ["Check Syntax", "Create Report"]
+  resolves = ["Check Syntax", "Publish Reports"]
 }
 
 action "Check Syntax" {
@@ -15,13 +15,11 @@ action "Run Tests" {
   env = {
     GO_VERSION = "1.11.5"
   }
+  secrets = ["DROPBOX_TOKEN"]
 }
 
-action "Create Report" {
+action "Publish Reports" {
   needs = [ "Run Tests" ]
-  uses = "./.github/actions/report"
-  env = {
-    GO_VERSION = "1.11.5"
-  }
+  uses = "./.github/actions/publish"
   secrets = ["DROPBOX_TOKEN"]
 }

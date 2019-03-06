@@ -1,12 +1,12 @@
 # Mole Test Runner
 
  [Mole](https://github.com/davrodpin/mole)'s Github Action to execute test
- suites.
+ suites and generate quality-related reports.
 
 ## Environment Variables
 
-  * `GO_VERSION`: The version of the Go compiler used to generate the reports
-    (default: 1.11.5)
+  * `DROPBOX_TOKEN`: Authentication token allow reports to be uploaded to
+    Dropbox.
 
 ## Secrets
 
