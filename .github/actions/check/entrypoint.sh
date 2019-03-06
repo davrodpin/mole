@@ -23,7 +23,7 @@ log() {
 }
 
 
-mole_create_wksp() {
+mole_wksp() {
   log "info" "Creating Go workspace at ${GOPATH}"
 
   [ ! -d "${GOPATH}" ] && {
@@ -113,23 +113,82 @@ cov_diff() {
   return 0
 }
 
+publish() {
+  local_path="$1"
+	remote_path="$2"
+
+  [ -z "$local_path" ] || [ -z "$remote_path" ] && {
+    log "error" "could not publish new report ${local_path} to ${remote_path}"
+    return 1
+  }
+
+	resp=`curl --silent --show-error -X POST https://content.dropboxapi.com/2/files/upload \
+    --header "Authorization: Bearer ${DROPBOX_TOKEN}" \
+    --header "Dropbox-API-Arg: {\"path\":\"${remote_path}\", \"mode\":\"overwrite\", \"mute\":true}" \
+    --header "Content-Type: application/octet-stream" \
+    --data-binary @${local_path}`
+
+  error=`printf "%s\n" "$resp" | jq 'select(.error != null) | .error'`
+  [ -n "$error" ] && {
+    log "error" "could not publish report ${local_path}"
+    printf "%s\n" "$resp" | jq '.'
+    return 1
+  }
+
+  resp=`curl --silent --show-error -X POST https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings \
+    --header "Authorization: Bearer ${DROPBOX_TOKEN}" \
+    --header "Content-Type: application/json" \
+    --data "{\"path\": \"${remote_path}\",\"settings\": {\"requested_visibility\": \"public\"}}"`
+
+  printf "%s\n" "$resp" | grep -q 'Error in call' && {
+    log "error" "report was published but could not create public link for ${remote_path}: ${resp}"
+    return 1
+  }
+
+  link=`printf "%s" "$resp" | jq '.url' | sed 's/"//g'`
+
+  report_url="http://htmlpreview.github.io/?${link}&raw=1"
+  log "info" "coverage report available at ${report_url}"
+
+  return 0
+}
+
 mole_test() {
   prev_commit_id=`jq '.before' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
   commit_id=`jq '.after' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
 
-  go_install && \
-    mole_create_wksp && \
-    log "info" "running mole's tests and generating coverage profile for ${commit_id}" &&  \
-    $GO test github.com/${GITHUB_REPOSITORY}/... -v -race -coverprofile=${COV_PROFILE} -covermode=atomic || return 1
+  go_install && mole_wksp || return 1
+
+  ## TEST
+
+  log "info" "running mole's tests and generating coverage profile for ${commit_id}"
+  $GO test github.com/${GITHUB_REPOSITORY}/... -v -race -coverprofile=${COV_PROFILE} -covermode=atomic || return 1
 
   $GO tool cover -html=${COV_PROFILE} -o ${COV_REPORT} || {
     log "error" "error generating coverage report"
     return 1
   }
 
-  log "info" "comparing coverage between ${commit_id} and ${prev_commit_id}"
+  log "info" "looking for code formatting issues on mole@${commit_id}" || return 1
+  fmt=`$GO fmt github.com/${GITHUB_REPOSITORY}/... | sed 's/\n/ /p'`
+  retcode=$?
+
+  if [ -n "$fmt" ]
+  then
+    log "error" "the following files do not follow the Go formatting convention: ${fmt}"
+    return ${retcode}
+  else
+    log "info" "all source code files are following the formatting Go convention"
+  fi
+
+  log "info" "comparing code coverage between ${commit_id} and ${prev_commit_id}"
   cov_diff "$prev_commit_id"
-  [ $? -eq 1 ] && return 78
+  [ $? -eq 1 ] && return 1
+
+  ## PUBLISH COV REPORT
+
+  log "info" "publishing new coverage report for commit ${commit_id}"
+  publish "${COV_REPORT}" "/reports/${commit_id}/mole-coverage.html"
 
   return 0
 }
