@@ -1,12 +1,9 @@
 #!/bin/sh -l
 
-GO_INSTALL_DIR=$HOME
+export GOPATH=/go
 
-export GOROOT=${GO_INSTALL_DIR}/go
-export GOPATH=$HOME/go_workspace
-
+GO="/usr/local/go/bin/go"
 MOLE_SRC_PATH=${GOPATH}/src/github.com/${GITHUB_REPOSITORY}
-GO=$GOROOT/bin/go
 COV_PROFILE=${GITHUB_WORKSPACE}/coverage.out
 COV_REPORT=${GITHUB_WORKSPACE}/mole-coverage.html
 JSON='{ "message": "{{MESSAGE}}", "committer": { "name": "Mole Bot", "email": "davrodpin+molebot@gmail.com" }, "content": "{{CONTENT}}" }'
@@ -26,23 +23,8 @@ log() {
 mole_wksp() {
   log "info" "Creating Go workspace at ${GOPATH}"
 
-  [ ! -d "${GOPATH}" ] && {
-    mkdir -p $GOPATH/{src,bin,pkg} && \
-      mkdir -p ${MOLE_SRC_PATH} && \
-      cp -a $GITHUB_WORKSPACE/* ${MOLE_SRC_PATH} || return 1
-  }
-
-  return 0
-}
-
-go_install() {
-  [ ! -f "$GO" ] && {
-    cd ${GO_INSTALL_DIR} && \
-      log "info" "downloading https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz" && \
-      curl --silent --show-error -O https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz && \
-      tar -C $HOME -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
-      log "info" "go ${GO_VERSION} installed with success" || return 1
-  }
+  mkdir -p ${MOLE_SRC_PATH} && \
+    cp -a $GITHUB_WORKSPACE/* ${MOLE_SRC_PATH} || return 1
 
   return 0
 }
@@ -157,7 +139,7 @@ mole_test() {
   prev_commit_id=`jq '.before' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
   commit_id=`jq '.after' ${GITHUB_EVENT_PATH} | sed 's/"//g' | cut -c-7`
 
-  go_install && mole_wksp || return 1
+  mole_wksp || return 1
 
   ## TEST
 

@@ -1,4 +1,4 @@
-FROM debian:9.7
+FROM golang:1.11.5
 
 LABEL "com.github.actions.name"="action-check"
 LABEL "com.github.actions.description"="Code quality check for Mole"
@@ -9,7 +9,7 @@ LABEL "repository"="http://github.com/davrodpin/mole"
 LABEL "homepage"="https://davrodpin.github.io/mole/"
 LABEL "maintainer"="David Pinheiro <davrodpin@gmail.com>"
 
-RUN apt-get update && apt install -y curl build-essential jq bc
+RUN apt-get update && apt install -y curl jq bc
 
 ADD entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

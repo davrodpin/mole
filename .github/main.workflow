@@ -5,8 +5,5 @@ workflow "Mole Code Quality Checks" {
 
 action "Check Code Quality" {
   uses = "./.github/actions/check"
-  env = {
-    GO_VERSION = "1.11.5"
-  }
   secrets = ["DROPBOX_TOKEN"]
 }
