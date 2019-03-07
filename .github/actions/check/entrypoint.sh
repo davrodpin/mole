@@ -3,10 +3,16 @@
 export GOPATH=/go
 
 GO="/usr/local/go/bin/go"
+GOMPLATE="/usr/local/bin/gomplate"
 MOLE_SRC_PATH=${GOPATH}/src/github.com/${GITHUB_REPOSITORY}
-COV_PROFILE=${GITHUB_WORKSPACE}/coverage.out
+COV_PROFILE=${GITHUB_WORKSPACE}/coverage.txt
 COV_REPORT=${GITHUB_WORKSPACE}/mole-coverage.html
-JSON='{ "message": "{{MESSAGE}}", "committer": { "name": "Mole Bot", "email": "davrodpin+molebot@gmail.com" }, "content": "{{CONTENT}}" }'
+COV_DIFF_DATA=${GITHUB_WORKSPACE}/cov-diff.json
+COV_DIFF_HTML_REPORT_TPL=/cov-diff.html.tpl
+COV_DIFF_TXT_REPORT_TPL=/cov-diff.txt.tpl
+COV_DIFF_REPORT=${GITHUB_WORKSPACE}/mole-diff-coverage.html
+COV_DIFF_DATA_TPL='{ "Title": "{{TITLE}}", "Previous_Commit": "{{PREV_COMMIT}}", "Current_Commit": "{{CURR_COMMIT}}", "Created_At": "{{CREATED_AT}}", "Files": [{{ROWS}}] }'
+COV_DIFF_DATA_ROW_TPL='{ "File": "{{FILE}}", "Previous_Coverage": {{PREV}}, "Current_Coverage": {{CUR}}, "Diff": {{DIFF}} }'
 
 log() {
   level="$1"
@@ -19,6 +25,12 @@ log() {
   return 0
 }
 
+install_gomplate() {
+  curl -sSL -o ${GOMPLATE} 'https://github.com/hairyhenderson/gomplate/releases/download/v3.3.0/gomplate_linux-amd64-slim' && \
+    chmod +x ${GOMPLATE} || return 1
+
+  return 0
+}
 
 mole_wksp() {
   log "info" "Creating Go workspace at ${GOPATH}"
@@ -49,48 +61,114 @@ download_report() {
   return 0
 }
 
-cov_diff() {
+cov_diff_data() {
   prev="$1"
+  cur="$2"
 
   [ ! -f "$COV_REPORT" ] && {
     log "error" "coverage diff can't be computed: report file is missing: ${COV_REPORT}"
     return 1
   }
 
+  [ -z "$COV_DIFF_DATA" ] && {
+    log "error" "coverage diff output file not defined"
+    return 1
+  }
+
   prev_report=`download_report "${prev}"`
   [ $? -ne 0 ] && {
-    log "warn" "coverage diff can't be computed: report could not be donwloaded for ${prev}"
+    log "warn" "coverage diff can't be computed: report for ${prev} could not be donwloaded"
     printf "%s\n" "${prev_report}"
     return 2
   }
 
-  curr_stats=`cat ${COV_REPORT} | grep "<option value=" | sed -n 's/[[:blank:]]\{0,\}<option value="file[0-9]\{1,\}">\(.\{1,\}\) (\([0-9.]\{1,\}\)%)<\/option>/\1,\2/p'`
-  prev_stats=`echo "${prev_report}" | grep "<option value=" | sed -n 's/[[:blank:]]\{0,\}<option value="file[0-9]\{1,\}">\(.\{1,\}\) (\([0-9.]\{1,\}\)%)<\/option>/\1,\2/p'`
+  cur_stats_data=`cat ${COV_REPORT} | grep "<option value=" | sed -n 's/[[:blank:]]\{0,\}<option value="file[0-9]\{1,\}">\(.\{1,\}\) (\([0-9.]\{1,\}\)%)<\/option>/\1,\2/p'`
+  prev_stats_data=`echo "${prev_report}" | grep "<option value=" | sed -n 's/[[:blank:]]\{0,\}<option value="file[0-9]\{1,\}">\(.\{1,\}\) (\([0-9.]\{1,\}\)%)<\/option>/\1,\2/p'`
 
-  [ -z "$curr_stats" ] || [ -z "$prev_stats" ] && {
+  [ -z "$cur_stats_data" ] || [ -z "$prev_stats_data" ] && {
     log "error" "could not extract the code coverage numbers from ${COV_REPORT} and/or ${prev}"
     return 1
   }
 
-  for stats1 in `printf "%s\n" "$curr_stats"`
+  now=`date --utc --iso-8601=sec`
+  report="$COV_DIFF_DATA_TPL"
+  report=`printf "$report\n" | sed "s/{{TITLE}}/Code coverage comparison between ${prev} and ${cur}/"`
+  report=`printf "$report\n" | sed "s/{{PREV_COMMIT}}/${prev}/"`
+  report=`printf "$report\n" | sed "s/{{CURR_COMMIT}}/${cur}/"`
+  report=`printf "$report\n" | sed "s/{{CREATED_AT}}/${now}/"`
+
+  rows=""
+  for cur_stats in `printf "%s\n" "$cur_stats_data"`
   do
-    mod1=`printf "%s\n" "$stats1" | awk -F, '{print $1}'`
-    cov1=`printf "%s\n" "$stats1" | awk -F, '{print $2}'`
-    diff=0
+    file1=`printf "%s\n" "$cur_stats" | awk -F, '{print $1}'`
+    cov1=`printf "%s\n" "$cur_stats" | awk -F, '{printf "%.2f", $2}'`
+    cov2=0.0
+    diff=0.0
 
-    for stats2 in `printf "%s\n" "$prev_stats"`
+    for prev_stats in `printf "%s\n" "$prev_stats_data"`
     do
-      mod2=`printf "%s\n" "$stats2" | awk -F, '{print $1}'`
-      cov2=`printf "%s\n" "$stats2" | awk -F, '{print $2}'`
+      file2=`printf "${prev_stats}\n" | awk -F, '{print $1}'`
+      cov2=`printf "${prev_stats}\n" | awk -F, '{printf "%.2f", $2}'`
 
-      [ "$mod1" = "$mod2" ] && {
-        diff=`printf "%s - %s\n" "$cov1" "$cov2" | bc`
+      [ "$file1" = "$file2" ] && {
+        diff=`printf "%.2f - %.2f\n" "$cov1" "$cov2" | bc`
+        diff=`printf "%.2f" "${diff}"`
         break
       }
     done
 
-    printf "[mod=%s, cov=%s]\n" "$mod1" "$diff"
+    row="$COV_DIFF_DATA_ROW_TPL"
+    row=`printf "$row\n" | sed "s:{{FILE}}:${file1}:"`
+    row=`printf "$row\n" | sed "s:{{PREV}}:${cov2}:"`
+    row=`printf "$row\n" | sed "s:{{CUR}}:${cov1}:"`
+    row=`printf "$row\n" | sed "s:{{DIFF}}:${diff}:"`
+
+    if [ -n "$rows" ]
+    then
+      rows="$rows,$row"
+    else
+      rows="$row"
+    fi
   done
+
+  report=`printf "$report\n" | sed "s#{{ROWS}}#${rows}#"`
+
+  printf "${report}\n" > $COV_DIFF_DATA
+
+  return 0
+}
+
+cov_diff_report() {
+  prev="$1"
+  cur="$2"
+
+  install_gomplate || {
+    log "error" "could not download gomplate"
+    return 1
+  }
+
+  cov_diff_data "$prev" "${cur}"
+  ret=$?
+  [ $ret -gt 0 ] && return $ret
+
+  [ ! -f "$COV_DIFF_DATA" ] && {
+    log "error" "code coverage comparison data could not be found: $COV_DIFF_DATA"
+    return 1
+  }
+
+  [ ! -f "$COV_DIFF_HTML_REPORT_TPL" ] && {
+    log "error" "code coverage report template could not be found: $COV_DIFF_HTML_REPORT_TPL"
+    return 1
+  }
+
+  [ ! -f "$COV_DIFF_TXT_REPORT_TPL" ] && {
+    log "error" "code coverage report template could not be found: $COV_DIFF_TXT_REPORT_TPL"
+    return 1
+  }
+
+
+  $GOMPLATE -f ${COV_DIFF_HTML_REPORT_TPL} --context mole=${COV_DIFF_DATA} -o ${COV_DIFF_REPORT} || return 1
+  $GOMPLATE -f ${COV_DIFF_TXT_REPORT_TPL} --context mole=${COV_DIFF_DATA} || return 1
 
   return 0
 }
@@ -129,8 +207,7 @@ publish() {
 
   link=`printf "%s" "$resp" | jq '.url' | sed 's/"//g'`
 
-  report_url="http://htmlpreview.github.io/?${link}&raw=1"
-  log "info" "coverage report available at ${report_url}"
+  printf "http://htmlpreview.github.io/?${link}&raw=1"
 
   return 0
 }
@@ -163,16 +240,38 @@ mole_test() {
     log "info" "all source code files are following the formatting Go convention"
   fi
 
-  log "info" "comparing code coverage between ${commit_id} and ${prev_commit_id}"
-  cov_diff "$prev_commit_id"
-  [ $? -eq 1 ] && return 1
+  ## REPORTS
 
-  ## PUBLISH COV REPORT
+  log "info" "generating report for code coverage comparison between ${prev_commit_id} and ${commit_id}"
+  cov_diff_report "${prev_commit_id}" "${commit_id}"
 
   log "info" "publishing new coverage report for commit ${commit_id}"
-  publish "${COV_REPORT}" "/reports/${commit_id}/mole-coverage.html"
+  ret=`publish "${COV_REPORT}" "/reports/${commit_id}/mole-coverage.html"`:w
+  if [ $? -eq 0 ]
+  then
+    log "info" "new coverage report available at ${ret}"
+  else
+    printf "${ret}\n"
+  fi
+
+  log "info" "publishing new code coverage comparison report"
+  ret=`publish "${COV_DIFF_REPORT}" "/reports/${commit_id}/molde-diff-coverage.html"`
+  if [ $? -eq 0 ]
+  then
+    log "info" "new coverage comparison report available at ${ret}"
+  else
+    printf "${ret}\n"
+  fi
+
+
+  #TODO publish list of files failing on go-fmt
+
+  #TODO Use $GITHUB_REF to post comment back to PR
+  #TODO warning if code coverage decreases
 
   return 0
 }
 
 mole_test
+#TODO return 1 if error and 78 if check fails
+
