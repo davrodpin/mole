@@ -11,5 +11,8 @@ LABEL "maintainer"="David Pinheiro <davrodpin@gmail.com>"
 
 RUN apt-get update && apt install -y curl jq bc
 
+ADD cov-diff.html.tpl /cov-diff.html.tpl
+ADD cov-diff.txt.tpl /cov-diff.txt.tpl
 ADD entrypoint.sh /entrypoint.sh
+
 ENTRYPOINT ["/entrypoint.sh"]
