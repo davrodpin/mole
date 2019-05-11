@@ -102,6 +102,7 @@ func TestMain(m *testing.M) {
 	defer os.RemoveAll(dir)
 
 	os.Setenv("HOME", dir)
+	os.Setenv("USERPROFILE", dir)
 
 	code := m.Run()
 

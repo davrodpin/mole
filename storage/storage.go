@@ -97,7 +97,12 @@ func Remove(name string) (*Tunnel, error) {
 func loadStore() (*Store, error) {
 	var store *Store
 
-	if _, err := os.Stat(storePath()); err != nil {
+	sp, err := storePath()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(sp); err != nil {
 		store = &Store{Tunnels: make(map[string]*Tunnel)}
 		store, err = createStore(store)
 		if err != nil {
@@ -107,7 +112,7 @@ func loadStore() (*Store, error) {
 		return store, nil
 	}
 
-	if _, err := toml.DecodeFile(storePath(), &store); err != nil {
+	if _, err := toml.DecodeFile(sp, &store); err != nil {
 		return nil, err
 	}
 
@@ -115,7 +120,12 @@ func loadStore() (*Store, error) {
 }
 
 func createStore(store *Store) (*Store, error) {
-	f, err := os.Create(storePath())
+	sp, err := storePath()
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := os.Create(sp)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +141,11 @@ func createStore(store *Store) (*Store, error) {
 	return store, nil
 }
 
-func storePath() string {
-	return filepath.Join(os.Getenv("HOME"), ".mole.conf")
+func storePath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, ".mole.conf"), nil
 }

@@ -108,7 +108,6 @@ func TestServerOptions(t *testing.T) {
 			t.Errorf("unexpected result : expected: %s, result: %s", test.expected, s)
 		}
 	}
-
 }
 
 func TestTunnelOptions(t *testing.T) {
@@ -343,6 +342,7 @@ func prepareTestEnv() {
 	}
 
 	os.Setenv("HOME", home)
+	os.Setenv("USERPROFILE", home)
 }
 
 // get performs a http request using the given client appending the given

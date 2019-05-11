@@ -72,7 +72,12 @@ func NewServer(user, address, key string) (*Server, error) {
 	}
 
 	if key == "" {
-		key = filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("could not obtain user home directory: %v", err)
+		}
+
+		key = filepath.Join(home, ".ssh", "id_rsa")
 	}
 
 	pk, err := NewPemKey(key, "")
@@ -285,7 +290,12 @@ func knownHostsCallback(insecure bool) (ssh.HostKeyCallback, error) {
 		}
 	} else {
 		var err error
-		knownHostFile := filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts")
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("could not obtain user home directory :%v", err)
+		}
+
+		knownHostFile := filepath.Join(home, ".ssh", "known_hosts")
 		log.Debugf("known_hosts file used: %s", knownHostFile)
 
 		clb, err = knownhosts.New(knownHostFile)

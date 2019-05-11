@@ -33,9 +33,16 @@ func main() {
 		app.PrintUsage()
 		os.Exit(1)
 	}
+
 	log.SetOutput(os.Stdout)
 
-	instancesDir = fmt.Sprintf("%s/.mole/instances", os.Getenv("HOME"))
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Errorf("error starting mole: %v", err)
+		os.Exit(1)
+	}
+
+	instancesDir = fmt.Sprintf("%s/.mole/instances", home)
 
 	err = createInstancesDir()
 	if err != nil {
