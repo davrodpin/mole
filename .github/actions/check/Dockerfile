@@ -1,4 +1,4 @@
-FROM golang:1.11.5
+FROM golang:1.12.5
 
 LABEL "com.github.actions.name"="action-check"
 LABEL "com.github.actions.description"="Code quality check for Mole"
