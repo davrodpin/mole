@@ -19,7 +19,13 @@ type SSHConfigFile struct {
 // NewSSHConfigFile creates a new instance of SSHConfigFile based on the
 // ssh config file from $HOME/.ssh/config.
 func NewSSHConfigFile() (*SSHConfigFile, error) {
-	configPath := filepath.Join(os.Getenv("HOME"), ".ssh", "config")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	configPath := filepath.Join(home, ".ssh", "config")
+
 	f, err := os.Open(filepath.Clean(configPath))
 	if err != nil {
 		return nil, err
