@@ -22,7 +22,7 @@ endif
 	GOOS=linux GOARCH=amd64 go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole/cmd/mole
 	cd bin && tar c mole | gzip > mole$(version).linux-amd64.tar.gz && rm mole && cd -
 	GOOS=windows GOARCH=amd64 go build -o bin/mole.exe -ldflags "$(LDFLAGS)" github.com/davrodpin/mole/cmd/mole
-	cd bin && tar c mole.exe | gzip > mole$(version).windows-amd64.tar.gz && rm mole.exe && cd -
+	cd bin && zip mole$(version).windows-amd64.zip mole.exe && rm -f mole.exe && cd -
 
 add-network:
 	-@docker network create --subnet=192.168.33.0/24 mole
