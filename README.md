@@ -10,7 +10,7 @@ For more information about usage, examples and specific use cases, please visit 
 
 ### Build and Install from Source
 
-* [Go 1.12.5+](https://golang.org/dl/)
+[Go 1.12.5+](https://golang.org/dl/) is required.
 
 ```sh
 $ go install github.com/davrodpin/mole/cmd/mole
