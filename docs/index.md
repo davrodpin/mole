@@ -21,15 +21,18 @@ INFO[0000] listening on local address                    local_address="127.0.0.
   * [Access a computer or service behind a firewall](#access-a-computer-or-service-behind-a-firewall)
   * [Access a service that is listening only on a local address](#access-a-service-that-is-listening-only-on-a-local-address)
 * [Installation](#installation)
-  * [macOS and Linux](#installation)
+  * [Linux and Mac](#linux-and-mac)
   * [Homebrew](#or-if-you-prefer-install-it-through-homebrew)
+  * [Windows](#windows)
 * [Usage](#usage)
 * [Examples](#examples)
-  * [Provide all supported options](#provide-all-supported-options)
+  * [Basics](#basics)
   * [Use the ssh config file to lookup a given server host](#use-the-ssh-config-file-to-lookup-a-given-server-host)
   * [Let mole to randomly select the local endpoint](#let-mole-to-randomly-select-the-local-endpoint)
   * [Connect to a remote service that is running on 127.0.0.1 by specifying only the remote port](#connect-to-a-remote-service-that-is-running-on-127001-by-specifying-only-the-remote-port)
   * [Create an alias, so there is no need to remember the tunnel settings afterwards](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards)
+  * [Start mole in background](#start-mole-in-background)
+  * [Leveraging LocalForward from SSH configuration file](#leveraging-localforward-from-ssh-configuration-file)
 
 # Use Cases
 
@@ -109,6 +112,8 @@ NOTE: _Server and Remote Computer could potentially be the same machine._
 
 # Installation
 
+## Linux and Mac
+
 ```sh
 bash <(curl -fsSL https://raw.githubusercontent.com/davrodpin/mole/master/tools/install.sh)
 ```
@@ -119,45 +124,54 @@ bash <(curl -fsSL https://raw.githubusercontent.com/davrodpin/mole/master/tools/
 brew tap davrodpin/homebrew-mole && brew install mole
 ```
 
+## Windows
+
+* Download Mole for Windows from [here](https://github.com/davrodpin/mole/releases/latest)
+
 # Usage
 
 ```sh
 $ mole -help
 usage:
-  mole [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
-  mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
-  mole -alias <alias_name> -delete
-  mole -start <alias_name>
-  mole -aliases
-  mole -help
-  mole -version
+	mole [-v] [-insecure] [-detach] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole -alias <alias_name> -delete
+	mole -start <alias_name>
+	mole -help
+	mole -version
 
   -alias string
-        Create a tunnel alias
+    	Create a tunnel alias
   -aliases
-        list all aliases
+    	list all aliases
   -delete
-        delete a tunnel alias (must be used with -alias)
+    	delete a tunnel alias (must be used with -alias)
+  -detach
+    	(optional) run process in background
   -help
-        list all options available
+    	list all options available
+  -insecure
+    	(optional) skip host key validation when connecting to ssh server
   -key string
-        (optional) Set server authentication key file path
+    	(optional) Set server authentication key file path
   -local value
-        (optional) Set local endpoint address: [<host>]:<port>
+    	(optional) Set local endpoint address: [<host>]:<port>
   -remote value
-        set remote endpoint address: [<host>]:<port>
+    	set remote endpoint address: [<host>]:<port>
   -server value
-        set server address: [<user>@]<host>[:<port>]
+    	set server address: [<user>@]<host>[:<port>]
   -start string
-        Start a tunnel using a given alias
-  -v    (optional) Increase log verbosity
+    	Start a tunnel using a given alias
+  -stop string
+    	stop background process
+  -v	(optional) Increase log verbosity
   -version
-        display the mole version
+    	display the mole version
 ```  
 
 ## Examples
 
-### Provide all supported options
+### Basics
 
 ```sh
 $ mole -v -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -key ~/.ssh/id_rsa
@@ -223,4 +237,34 @@ DEBU[0000] using ssh config file from: /home/mole/.ssh/config
 DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
 DEBU[0000] tunnel: [local:127.0.0.1:8443, server:example.com:22, remote:127.0.0.1:443]
 INFO[0000] listening on local address                    local_address="127.0.0.1:8443"
+```
+
+### Start mole in background
+
+```sh
+$ mole -alias example2 -v -local :8443 -remote :443 -server user@example.com
+$ mole -start example2 -detach
+INFO[0000] execute "mole -stop example2" if you like to stop it at any time
+$ tail -f ~/.mole/instances/example2/mole.log
+time="2019-05-13T09:56:57-07:00" level=info msg="listening on local address" local_address="127.0.0.1:21112"
+$ mole -stop example2
+```
+
+### Leveraging LocalForward from SSH configuration file
+
+```sh
+$ cat ~/.ssh/config
+Host example
+  User mole
+  Hostname 127.0.0.1
+  Port 22122
+  LocalForward 21112 192.168.33.11:80
+  IdentityFile test-env/ssh-server/keys/key
+$ mole -v -server example
+DEBU[0000] cli options                                   options="[local=, remote=, server=example, key=, verbose=true, help=false, version=false, detach=false]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example, address=127.0.0.1:22122, user=mole]
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] tunnel: [local:127.0.0.1:21112, server:127.0.0.1:22122, remote:192.168.33.11:80]
+INFO[0000] listening on local address                    local_address="127.0.0.1:21112"
 ```
