@@ -2,7 +2,7 @@
 # [Mole](https://davrodpin.github.io/mole/)
 
 Mole is a cli application to create ssh tunnels, forwarding a local port to a
-remote endpoint through an ssh server.
+remote endpoint through a ssh server.
 
 For more information about usage, examples and specific use cases, please visit https://davrodpin.github.io/mole/
 
