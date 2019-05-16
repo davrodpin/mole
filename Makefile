@@ -1,4 +1,4 @@
-.PHONY: test cover install bin test-env rm-test-env
+.PHONY: test cover build bin test-env rm-test-env
 
 LDFLAGS := -X main.version=$(version)
 
@@ -6,12 +6,12 @@ test:
 ifneq ($(shell go fmt ./...),)
 	$(error code not formatted. Please run 'go fmt')
 endif
-  @go test github.com/davrodpin/mole/... -v -race -coverprofile=coverage.txt -covermode=atomic
+	@go test github.com/davrodpin/mole/... -v -race -coverprofile=coverage.txt -covermode=atomic
 cover: test
 	go tool cover -html=coverage.txt
 
-install:
-	@go install github.com/davrodpin/mole/cmd/mole
+build:
+	@go build github.com/davrodpin/mole/cmd/mole
 
 bin:
 ifeq ($(version),)
