@@ -13,7 +13,7 @@ For more information about usage, examples and specific use cases, please visit 
 [Go 1.12.5+](https://golang.org/dl/) is required.
 
 ```sh
-$ go install github.com/davrodpin/mole/cmd/mole
+$ go build github.com/davrodpin/mole/cmd/mole
 ```
 
 # Test Environment
