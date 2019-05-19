@@ -203,7 +203,8 @@ func start(app cli.App) error {
 		if app.Alias != "" {
 			alias = app.Alias
 		} else {
-			alias = uuid.NewV4().String()[:8]
+			id, _ := uuid.NewV4()
+			alias = id.String()[:8]
 		}
 		err := startDaemonProcess(alias)
 		if err != nil {
