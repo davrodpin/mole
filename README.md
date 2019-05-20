@@ -11,7 +11,7 @@ For more information about usage, examples and specific use cases, please visit 
 ### Build and Install from Source
 
 * [Go 1.12.5+](https://golang.org/dl/) is required
-* Mole uses [Go Modules](https://blog.golang.org/using-go-modules) to manage its dependencies
+* Mole uses [Go Modules](https://blog.golang.org/using-go-modules) to manage its dependencies, so remember to clone the project outside `GOPATH` and unset it.
 
 ```sh
 $ go build github.com/davrodpin/mole/cmd/mole
