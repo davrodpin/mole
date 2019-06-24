@@ -59,8 +59,7 @@ func (r SSHConfigFile) Get(host string) *SSHHost {
 
 	localForward, err := r.getLocalForward(host)
 	if err != nil {
-		localForward = &LocalForward{Local: "", Remote: ""}
-		log.Warningf("error reading LocalForward configuration from ssh config file. This option will not be used: %v", err)
+		log.Warningf("error reading LocalForward configuration from ssh config file: %v", err)
 	}
 
 	key := r.getKey(host)
@@ -92,7 +91,7 @@ func (r SSHConfigFile) getLocalForward(host string) (*LocalForward, error) {
 	}
 
 	if c == "" {
-		return &LocalForward{Local: "", Remote: ""}, nil
+		return nil, nil
 	}
 
 	l := strings.Fields(c)

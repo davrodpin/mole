@@ -1,6 +1,6 @@
 FROM alpine:3.6
 
-RUN apk update && apk add nginx
+RUN apk update && apk add nginx curl
 RUN mkdir -p /run/nginx
 RUN mkdir -p /data/www
 

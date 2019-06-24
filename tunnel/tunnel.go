@@ -16,7 +16,9 @@ import (
 )
 
 const (
-	HostMissing = "server host has to be provided as part of the server address"
+	HostMissing       = "server host has to be provided as part of the server address"
+	RandomPortAddress = "127.0.0.1:0"
+	NoRemoteGiven     = "cannot create a tunnel without at least one remote address"
 )
 
 // Server holds the SSH Server attributes used for the client to connect to it.
@@ -98,80 +100,126 @@ func (s Server) String() string {
 	return fmt.Sprintf("[name=%s, address=%s, user=%s]", s.Name, s.Address, s.User)
 }
 
-// Tunnel represents the ssh tunnel used to forward a local connection to a
-// a remote endpoint through a ssh server.
+type SSHChannel struct {
+	Local    string
+	Remote   string
+	listener net.Listener
+	conn     net.Conn
+}
+
+func (ch *SSHChannel) Close() {
+	if ch.listener != nil {
+		ch.listener.Close()
+	}
+}
+
+func (ch SSHChannel) String() string {
+	return fmt.Sprintf("[local=%s, remote=%s]", ch.Local, ch.Remote)
+}
+
+// Tunnel represents the ssh tunnel and the channels connecting local and
+// remote endpoints.
 type Tunnel struct {
 	// Ready tells when the Tunnel is ready to accept connections
 	Ready    chan bool
-	local    string
 	server   *Server
-	remote   string
+	channels []*SSHChannel
 	done     chan error
 	client   *ssh.Client
-	listener net.Listener
 }
 
 // New creates a new instance of Tunnel.
-func New(localAddress string, server *Server, remoteAddress string) *Tunnel {
-	cfg, err := NewSSHConfigFile()
-	if err != nil {
-		log.Warningf("error to read ssh config: %v", err)
-	}
+func New(server *Server, channels []*SSHChannel) (*Tunnel, error) {
 
-	sh := cfg.Get(server.Name)
-	localAddress = reconcileLocal(localAddress, sh.LocalForward.Local)
-	remoteAddress = reconcileRemote(remoteAddress, sh.LocalForward.Remote)
+	for _, channel := range channels {
+		if channel.Local == "" || channel.Remote == "" {
+			return nil, fmt.Errorf("invalid ssh channel: local=%s, remote=%s", channel.Local, channel.Remote)
+		}
+	}
 
 	return &Tunnel{
-		Ready:  make(chan bool, 1),
-		local:  localAddress,
-		server: server,
-		remote: remoteAddress,
-		done:   make(chan error),
-	}
+		Ready:    make(chan bool, 1),
+		channels: channels,
+		server:   server,
+		done:     make(chan error),
+	}, nil
 }
 
-// Start creates a new ssh tunnel, allowing data exchange between the local and
-// remote endpoints.
+// Start creates the ssh tunnel and initialized all channels allowing data
+// exchange between local and remote enpoints.
 func (t *Tunnel) Start() error {
-	var once sync.Once
-
-	_, err := t.Listen()
+	err := t.Listen()
 	if err != nil {
 		return err
 	}
-	defer t.listener.Close()
+	defer func() {
+		for _, ch := range t.channels {
+			ch.Close()
+		}
+	}()
 
 	log.Debugf("tunnel: %s", t)
 
-	log.WithFields(log.Fields{
-		"local_address": t.local,
-	}).Info("listening on local address")
+	//connecting to ssh server
+	err = t.dial()
+	if err != nil {
+		return err
+	}
 
-	go func(t *Tunnel) {
+	ready := make(chan *SSHChannel)
+
+	//TODO: use waitgroup!
+	// wait for all port startChannels to be ready to accept connections then sends a
+	// message signalling the tunnel is ready
+	go func(tunnel *Tunnel) {
+		n := 0
 		for {
+			select {
+			case ch := <-ready:
+				log.WithFields(log.Fields{
+					"local":  ch.Local,
+					"remote": ch.Remote,
+				}).Info("tunnel is ready")
 
-			once.Do(func() {
-				t.Ready <- true
-			})
+				n = n + 1
 
-			conn, err := t.listener.Accept()
-			if err != nil {
-				t.done <- fmt.Errorf("error while establishing new connection: %v", err)
-				return
-			}
-
-			log.WithFields(log.Fields{
-				"address": conn.RemoteAddr(),
-			}).Debug("new connection")
-
-			err = t.forward(conn)
-			if err != nil {
-				t.done <- err
-				return
+				if n == len(tunnel.channels) {
+					tunnel.Ready <- true
+					return
+				}
 			}
 		}
 	}(t)
+
+	for _, ch := range t.channels {
+		go func(channel *SSHChannel) {
+			var once sync.Once
+			var err error
+
+			for {
+
+				once.Do(func() {
+					ready <- channel
+				})
+
+				channel.conn, err = channel.listener.Accept()
+				if err != nil {
+					t.done <- fmt.Errorf("error while establishing new connection: %v", err)
+					return
+				}
+
+				log.WithFields(log.Fields{
+					"address": channel.conn.RemoteAddr(),
+				}).Debug("new connection")
+
+				err = t.startChannel(channel)
+				if err != nil {
+					t.done <- err
+					return
+				}
+			}
+		}(ch)
+	}
 
 	select {
 	case err = <-t.done:
@@ -182,32 +230,40 @@ func (t *Tunnel) Start() error {
 	}
 }
 
-// Listen binds the local address configured on Tunnel.
-func (t *Tunnel) Listen() (net.Listener, error) {
+// Listen creates tcp listeners for each channel defined.
+func (t *Tunnel) Listen() error {
+	for _, ch := range t.channels {
+		if ch.listener == nil {
+			l, err := net.Listen("tcp", ch.Local)
+			if err != nil {
+				return err
+			}
 
-	if t.listener != nil {
-		return t.listener, nil
+			ch.listener = l
+			ch.Local = l.Addr().String()
+		}
 	}
 
-	local, err := net.Listen("tcp", t.local)
-	if err != nil {
-		return nil, err
-	}
-
-	t.listener = local
-	t.local = local.Addr().String()
-
-	return t.listener, nil
+	return nil
 }
 
-func (t *Tunnel) forward(localConn net.Conn) error {
-	remoteConn, err := t.proxy()
-	if err != nil {
-		return err
+func (t *Tunnel) startChannel(channel *SSHChannel) error {
+	if t.client == nil {
+		return fmt.Errorf("new channel can't be established: missing connection to the ssh server")
 	}
 
-	go copyConn(localConn, remoteConn)
-	go copyConn(remoteConn, localConn)
+	remoteConn, err := t.client.Dial("tcp", channel.Remote)
+	if err != nil {
+		return fmt.Errorf("remote dial error: %s", err)
+	}
+
+	go copyConn(channel.conn, remoteConn)
+	go copyConn(remoteConn, channel.conn)
+
+	log.WithFields(log.Fields{
+		"remote": channel.Remote,
+		"server": t.server,
+	}).Debug("new connection established to remote")
 
 	return nil
 }
@@ -219,38 +275,29 @@ func (t Tunnel) Stop() {
 
 // String returns a string representation of a Tunnel.
 func (t Tunnel) String() string {
-	return fmt.Sprintf("[local:%s, server:%s, remote:%s]", t.local, t.server.Address, t.remote)
+	return fmt.Sprintf("[channels:%s, server:%s]", t.channels, t.server.Address)
 }
 
-func (t *Tunnel) proxy() (net.Conn, error) {
+func (t *Tunnel) dial() error {
+	if t.client != nil {
+		return nil
+	}
+
 	c, err := sshClientConfig(*t.server)
 	if err != nil {
-		return nil, fmt.Errorf("error generating ssh client config: %s", err)
+		return fmt.Errorf("error generating ssh client config: %s", err)
 	}
 
-	if t.client == nil {
-		t.client, err = ssh.Dial("tcp", t.server.Address, c)
-		if err != nil {
-			return nil, fmt.Errorf("server dial error: %s", err)
-		}
-
-		log.WithFields(log.Fields{
-			"server": t.server,
-		}).Debug("new connection established to server")
-
-	}
-
-	remoteConn, err := t.client.Dial("tcp", t.remote)
+	t.client, err = ssh.Dial("tcp", t.server.Address, c)
 	if err != nil {
-		return nil, fmt.Errorf("remote dial error: %s", err)
+		return fmt.Errorf("server dial error: %s", err)
 	}
 
 	log.WithFields(log.Fields{
-		"remote": t.remote,
 		"server": t.server,
-	}).Debug("new connection established to remote")
+	}).Debug("new connection established to server")
 
-	return remoteConn, nil
+	return nil
 }
 
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
@@ -355,29 +402,88 @@ func reconcileKey(givenKey, resolvedKey string) string {
 	return ""
 }
 
-func reconcileLocal(givenLocal, resolvedLocal string) string {
-
-	if givenLocal == "" && resolvedLocal != "" {
-		return resolvedLocal
-	}
-	if givenLocal == "" {
-		return "127.0.0.1:0"
-	}
-	if strings.HasPrefix(givenLocal, ":") {
-		return fmt.Sprintf("127.0.0.1%s", givenLocal)
+func expandAddress(address string) string {
+	if strings.HasPrefix(address, ":") {
+		return fmt.Sprintf("127.0.0.1%s", address)
 	}
 
-	return givenLocal
+	return address
 }
 
-func reconcileRemote(givenRemote, resolvedRemote string) string {
+// BuildSSHChannels normalizes the given set of local and remote addresses,
+// combining them to build a set of ssh channel objects.
+func BuildSSHChannels(serverName string, local, remote []string) ([]*SSHChannel, error) {
+	// if not local and remote were given, try to find the addresses from the SSH
+	// configuration file.
+	if len(local) == 0 && len(remote) == 0 {
+		lf, err := getLocalForward(serverName)
+		if err != nil {
+			return nil, err
+		}
 
-	if givenRemote == "" && resolvedRemote != "" {
-		return resolvedRemote
-	}
-	if strings.HasPrefix(givenRemote, ":") {
-		return fmt.Sprintf("127.0.0.1%s", givenRemote)
+		local = []string{lf.Local}
+		remote = []string{lf.Remote}
+	} else {
+
+		lSize := len(local)
+		rSize := len(remote)
+
+		if lSize > rSize {
+			// if there are more local than remote addresses given, the additional
+			// addresses must be removed.
+			if rSize == 0 {
+				return nil, fmt.Errorf(NoRemoteGiven)
+			}
+
+			local = local[0:rSize]
+		} else if lSize < rSize {
+			// if there are more remote than local addresses given, the missing local
+			// addresses should be configured as localhost with random ports.
+			nl := make([]string, rSize)
+
+			for i, _ := range remote {
+				if i < lSize {
+					if local[i] != "" {
+						nl[i] = local[i]
+					} else {
+						nl[i] = RandomPortAddress
+					}
+				} else {
+					nl[i] = RandomPortAddress
+				}
+			}
+
+			local = nl
+		}
 	}
 
-	return givenRemote
+	for i, addr := range local {
+		local[i] = expandAddress(addr)
+	}
+
+	for i, addr := range remote {
+		remote[i] = expandAddress(addr)
+	}
+
+	channels := make([]*SSHChannel, len(remote))
+	for i, r := range remote {
+		channels[i] = &SSHChannel{Local: local[i], Remote: r}
+	}
+
+	return channels, nil
+}
+
+func getLocalForward(serverName string) (*LocalForward, error) {
+	cfg, err := NewSSHConfigFile()
+	if err != nil {
+		return nil, fmt.Errorf("error reading ssh configuration file: %v", err)
+	}
+
+	sh := cfg.Get(serverName)
+
+	if sh.LocalForward == nil {
+		return nil, fmt.Errorf("LocalForward could not be found or has invalid syntax for host %s", serverName)
+	}
+
+	return sh.LocalForward, nil
 }

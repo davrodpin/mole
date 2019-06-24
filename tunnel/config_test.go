@@ -36,7 +36,7 @@ Host example3
 				Port:         "3306",
 				User:         "john",
 				Key:          "/path/.ssh/id_rsa",
-				LocalForward: &LocalForward{Local: "", Remote: ""},
+				LocalForward: nil,
 			},
 		},
 		{

@@ -9,3 +9,11 @@ Host test*
     Port 2223
     User mole_test2
     IdentityFile ~/.ssh/other_key
+
+Host hostWithLocalForward
+    Hostname 127.0.0.1
+    Port 2222
+    LocalForward 8080 172.17.0.1:8080
+    User mole_test
+    IdentityFile ~/.ssh/id_rsa
+

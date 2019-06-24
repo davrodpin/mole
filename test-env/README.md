@@ -4,8 +4,8 @@ This provides a small envorinment where `mole` functions can be tested and
 debugged.
 
 Once created, the test environment will provide a container running a ssh
-server and another container running an http server, so ssh tunnels can be
-created using `mole`.
+server and another container running two (2) http servers, so ssh tunnels can
+be created using `mole`.
 
 In addition to that, the test environment provides the infrastructure to
 analyze the traffic going through the ssh traffic.
@@ -26,14 +26,14 @@ analyze the traffic going through the ssh traffic.
             |
             |
             | 
-+-----------+-------+          +---------------------+
-|                   |          |                     |
-|  mole_ssh         |          |  mole_http          |
-|  SSH Server (:22) |          |  HTTP Server (:80)  |
-|  (192.168.33.10)  |----------|  (192.168.33.11)    |
-|                   |          |                     |
-|                   |          |                     |
-+-------------------+          +---------------------+
++-----------+-------+          +---------------------------+
+|                   |          |                           |
+|  mole_ssh         |          |  mole_http                |
+|  SSH Server (:22) |          |  HTTP Server #1 (:80)     |
+|  (192.168.33.10)  |----------|  HTTP Server #2 (:8080)   |
+|                   |          |  (192.168.33.11)          |
+|                   |          |                           |
++-------------------+          +---------------------------+
 ```
 
 ## Required Software
@@ -63,8 +63,9 @@ connections can be made using address `127.0.0.1:22122`.
 All ssh connection to `mole_ssh` should be done using the user `mole` and the
 key file located on `test-env/key`
 
-`mole_http` runs a http server listening on port `80`.
-The http server responds only to requests to `http://192.168.33.11/`.
+`mole_http` runs two http servers listening on port `80` and `8080`, so clients
+would be able to access the using the following urls: `http://192.168.33.11:80/`
+and `http://192.168.33.11:8080/`
 
 ### Teardown
 
@@ -83,14 +84,17 @@ The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 ```sh
 $ make test-env
 <lots of output messages here>
-$ mole -insecure -local :21112 -remote 192.168.33.11:80 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key
-INFO[0000] listening on local address                    local_address="127.0.0.1:21112"
+$ mole -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key
+INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
+INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
 $ curl 127.0.0.1:21112
+:)
+$ curl 127.0.0.1:21113
 :)
 ```
 
-NOTE: If you're wondering about the smile face, that is the response from the
-http server.
+NOTE: If you're wondering about the smile face, that is the response from both 
+http servers.
 
 ## Packet Analisys
 
