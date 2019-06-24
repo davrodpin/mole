@@ -11,8 +11,7 @@ import (
 // exchange data from the local address to the remote address through the
 // established ssh channel.
 func Example() {
-	local := "127.0.0.1:8080"
-	remote := "user@example.com:22"
+	sshChan := &tunnel.SSHChannel{Local: "127.0.0.1:8080", Remote: "user@example.com:22"}
 
 	// Initialize the SSH Server configuration providing all values so
 	// tunnel.NewServer will not try to lookup any value using $HOME/.ssh/config
@@ -21,7 +20,10 @@ func Example() {
 		log.Fatalf("error processing server options: %v\n", err)
 	}
 
-	t := tunnel.New(local, server, remote)
+	t, err := tunnel.New(server, []*tunnel.SSHChannel{sshChan})
+	if err != nil {
+		log.Fatalf("error creating tunnel: %v\n", err)
+	}
 
 	// Start the tunnel
 	err = t.Start()

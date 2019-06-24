@@ -10,15 +10,15 @@ import (
 
 var re = regexp.MustCompile(`(?P<user>.+@)?(?P<host>[[:alpha:][:digit:]\_\-\.]+)?(?P<port>:[0-9]+)?`)
 
-// App contains main settings of application.
+// App contains all supported CLI arguments given by the user.
 type App struct {
 	args []string
 	flag *flag.FlagSet
 
 	Command      string
-	Local        HostInput
-	Remote       HostInput
-	Server       HostInput
+	Local        AddressInputList
+	Remote       AddressInputList
+	Server       AddressInput
 	Key          string
 	Verbose      bool
 	Help         bool
@@ -47,8 +47,8 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.AliasDelete, "delete", false, "delete a tunnel alias (must be used with -alias)")
 	f.BoolVar(&c.AliasList, "aliases", false, "list all aliases")
 	f.StringVar(&c.Start, "start", "", "Start a tunnel using a given alias")
-	f.Var(&c.Local, "local", "(optional) Set local endpoint address: [<host>]:<port>")
-	f.Var(&c.Remote, "remote", "set remote endpoint address: [<host>]:<port>")
+	f.Var(&c.Local, "local", "(optional) Set local endpoint address: [<host>]:<port>. Multiple -local args can be provided.")
+	f.Var(&c.Remote, "remote", "(optional) Set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided.")
 	f.Var(&c.Server, "server", "set server address: [<user>@]<host>[:<port>]")
 	f.StringVar(&c.Key, "key", "", "(optional) Set server authentication key file path")
 	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
@@ -95,17 +95,15 @@ func (c App) Validate() error {
 
 	switch c.Command {
 	case "new-alias":
-		if c.Remote.String() == "" {
-			return fmt.Errorf("required flag is missing: -remote")
-		} else if c.Server.String() == "" {
+		if c.Server.String() == "" {
 			return fmt.Errorf("required flag is missing: -server")
 		}
 	case "start":
 		if c.Server.String() == "" {
 			return fmt.Errorf("required flag is missing: -server")
 		}
-
 	}
+
 	return nil
 }
 
@@ -113,8 +111,8 @@ func (c App) Validate() error {
 // use the tool.
 func (c *App) PrintUsage() {
 	fmt.Fprintf(os.Stderr, "%s\n\n", `usage:
-	mole [-v] [-insecure] [-detach] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
-	mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole [-v] [-insecure] [-detach] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>]
+	mole -alias <alias_name> [-v] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>]
 	mole -alias <alias_name> -delete
 	mole -start <alias_name>
 	mole -help
@@ -128,15 +126,15 @@ func (c App) String() string {
 		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach)
 }
 
-// HostInput holds information about a host
-type HostInput struct {
+// AddressInput holds information about a host
+type AddressInput struct {
 	User string
 	Host string
 	Port string
 }
 
-// String returns a string representation of a HostInput
-func (h HostInput) String() string {
+// String returns a string representation of a AddressInput
+func (h AddressInput) String() string {
 	var s string
 	if h.User == "" {
 		s = h.Address()
@@ -147,8 +145,8 @@ func (h HostInput) String() string {
 	return s
 }
 
-// Set parses a string representation of HostInput into its proper attributes.
-func (h *HostInput) Set(value string) error {
+// Set parses a string representation of AddressInput into its proper attributes.
+func (h *AddressInput) Set(value string) error {
 	result := parseServerInput(value)
 	h.User = strings.Trim(result["user"], "@")
 	h.Host = result["host"]
@@ -157,9 +155,9 @@ func (h *HostInput) Set(value string) error {
 	return nil
 }
 
-// Address returns a string representation of HostInput to be used to perform
+// Address returns a string representation of AddressInput to be used to perform
 // network connections.
-func (h HostInput) Address() string {
+func (h AddressInput) Address() string {
 	if h.Port == "" {
 		return fmt.Sprintf("%s", h.Host)
 	}
@@ -179,4 +177,40 @@ func parseServerInput(input string) map[string]string {
 	}
 
 	return result
+}
+
+type AddressInputList []AddressInput
+
+func (il AddressInputList) String() string {
+	ils := []string{}
+
+	for _, i := range il {
+		ils = append(ils, i.String())
+	}
+
+	return strings.Join(ils, ",")
+}
+
+func (il *AddressInputList) Set(value string) error {
+	i := AddressInput{}
+
+	err := i.Set(value)
+	if err != nil {
+		return err
+	}
+
+	*il = append(*il, i)
+
+	return nil
+}
+
+func (il AddressInputList) List() []string {
+	sl := []string{}
+
+	for _, i := range il {
+		sl = append(sl, i.String())
+	}
+
+	return sl
+
 }

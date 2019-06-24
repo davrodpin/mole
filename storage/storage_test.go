@@ -9,9 +9,9 @@ import (
 	"github.com/davrodpin/mole/storage"
 )
 
-func TestSaveTunnel(t *testing.T) {
+func TestSaveAlias(t *testing.T) {
 	alias := "example-save-443"
-	expected := &storage.Tunnel{
+	expected := &storage.Alias{
 		Local:   "",
 		Remote:  ":443",
 		Server:  "example",
@@ -33,9 +33,9 @@ func TestSaveTunnel(t *testing.T) {
 	}
 }
 
-func TestRemoveTunnel(t *testing.T) {
+func TestRemoveAlias(t *testing.T) {
 	alias := "example-rm-443"
-	expected := &storage.Tunnel{
+	expected := &storage.Alias{
 		Local:   "",
 		Remote:  ":443",
 		Server:  "example",
@@ -62,7 +62,7 @@ func TestRemoveTunnel(t *testing.T) {
 
 func TestFindAll(t *testing.T) {
 	alias1 := "example-save-443"
-	expected1 := &storage.Tunnel{
+	expected1 := &storage.Alias{
 		Local:   "",
 		Remote:  ":443",
 		Server:  "example",
@@ -70,7 +70,7 @@ func TestFindAll(t *testing.T) {
 	}
 
 	alias2 := "example-save-80"
-	expected2 := &storage.Tunnel{
+	expected2 := &storage.Alias{
 		Local:   "",
 		Remote:  ":80",
 		Server:  "example",
@@ -80,17 +80,17 @@ func TestFindAll(t *testing.T) {
 	storage.Save(alias1, expected1)
 	storage.Save(alias2, expected2)
 
-	expectedTunnelList := make(map[string]*storage.Tunnel)
-	expectedTunnelList[alias1] = expected1
-	expectedTunnelList[alias2] = expected2
+	expectedAliasList := make(map[string]*storage.Alias)
+	expectedAliasList[alias1] = expected1
+	expectedAliasList[alias2] = expected2
 
 	tunnels, err := storage.FindAll()
 	if err != nil {
 		t.Errorf("Test failed while retrieving all tunnels: %v", err)
 	}
 
-	if !reflect.DeepEqual(expectedTunnelList, tunnels) {
-		t.Errorf("Test failed.\n\texpected: %v\n\tvalue   : %v", expectedTunnelList, tunnels)
+	if !reflect.DeepEqual(expectedAliasList, tunnels) {
+		t.Errorf("Test failed.\n\texpected: %v\n\tvalue   : %v", expectedAliasList, tunnels)
 	}
 }
 
@@ -107,4 +107,55 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	os.Exit(code)
+}
+
+func TestReadLocalAndRemote(t *testing.T) {
+
+	tests := []struct {
+		alias          *storage.Alias
+		expectedLocal  []string
+		expectedRemote []string
+	}{
+		{
+			alias:          &storage.Alias{Local: ":3306", Remote: ":3306"},
+			expectedLocal:  []string{":3306"},
+			expectedRemote: []string{":3306"},
+		},
+		{
+			alias:          &storage.Alias{Local: []interface{}{":3306", ":8080"}, Remote: []interface{}{":3306", ":8080"}},
+			expectedLocal:  []string{":3306", ":8080"},
+			expectedRemote: []string{":3306", ":8080"},
+		},
+		{
+			alias:          &storage.Alias{Local: ":3306", Remote: []interface{}{":3306", ":8080"}},
+			expectedLocal:  []string{":3306"},
+			expectedRemote: []string{":3306", ":8080"},
+		},
+		{
+			alias:          &storage.Alias{Local: []interface{}{":3306", ":8080"}, Remote: []interface{}{":3306"}},
+			expectedLocal:  []string{":3306", ":8080"},
+			expectedRemote: []string{":3306"},
+		},
+	}
+
+	for testId, test := range tests {
+		local, err := test.alias.ReadLocal()
+		if err != nil {
+			t.Errorf("unexpected error while reading local address from alias for %d: %v", testId, err)
+		}
+
+		remote, err := test.alias.ReadRemote()
+		if err != nil {
+			t.Errorf("unexpected error while reading remote address from alias for %d: %v", testId, err)
+		}
+
+		if !reflect.DeepEqual(test.expectedLocal, local) {
+			t.Errorf("unexpected local address for %d: expected: %v, value: %v", testId, test.expectedLocal, local)
+		}
+
+		if !reflect.DeepEqual(test.expectedRemote, remote) {
+			t.Errorf("unexpected remote address for %d: expected: %v, value: %v", testId, test.expectedRemote, remote)
+		}
+
+	}
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 	"syscall"
 
 	"github.com/awnumar/memguard"
@@ -56,7 +55,7 @@ func main() {
 	case "version":
 		fmt.Printf("mole %s\n", version)
 	case "start":
-		err := start(*app)
+		err := start(app)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -81,7 +80,7 @@ func main() {
 			os.Exit(1)
 		}
 	case "aliases":
-		err := lsAliases(*app)
+		err := lsAliases()
 		if err != nil {
 			os.Exit(1)
 		}
@@ -187,7 +186,15 @@ func startFromAlias(app cli.App) error {
 		return err
 	}
 
-	appFromAlias := alias2app(conf)
+	appFromAlias, err := alias2app(conf)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"alias": app.Alias,
+		}).Errorf("error starting mole: %v", err)
+
+		return err
+	}
+
 	appFromAlias.Alias = app.Alias
 	// if use -detach when -start but none -detach in storage
 	if app.Detach {
@@ -197,7 +204,7 @@ func startFromAlias(app cli.App) error {
 	return start(appFromAlias)
 }
 
-func start(app cli.App) error {
+func start(app *cli.App) error {
 	if app.Detach {
 		var alias string
 		if app.Alias != "" {
@@ -241,7 +248,26 @@ func start(app cli.App) error {
 
 	log.Debugf("server: %s", s)
 
-	t := tunnel.New(app.Local.String(), s, app.Remote.String())
+	local := make([]string, len(app.Local))
+	for i, r := range app.Local {
+		local[i] = r.String()
+	}
+
+	remote := make([]string, len(app.Remote))
+	for i, r := range app.Remote {
+		remote[i] = r.String()
+	}
+
+	channels, err := tunnel.BuildSSHChannels(s.Name, local, remote)
+	if err != nil {
+		return err
+	}
+
+	t, err := tunnel.New(s, channels)
+	if err != nil {
+		log.Errorf("%v", err)
+		return err
+	}
 
 	if err = t.Start(); err != nil {
 		log.WithFields(log.Fields{
@@ -256,7 +282,6 @@ func start(app cli.App) error {
 
 func newAlias(app cli.App) error {
 	_, err := storage.Save(app.Alias, app2alias(app))
-
 	if err != nil {
 		log.WithFields(log.Fields{
 			"alias": app.Alias,
@@ -275,56 +300,4 @@ func rmAlias(app cli.App) error {
 	}
 
 	return nil
-}
-
-func lsAliases(app cli.App) error {
-	tunnels, err := storage.FindAll()
-	if err != nil {
-		return err
-	}
-
-	aliases := []string{}
-	for alias := range tunnels {
-		aliases = append(aliases, alias)
-	}
-
-	fmt.Printf("alias list: %s\n", strings.Join(aliases, ", "))
-
-	return nil
-}
-
-func app2alias(app cli.App) *storage.Tunnel {
-	return &storage.Tunnel{
-		Local:   app.Local.String(),
-		Remote:  app.Remote.String(),
-		Server:  app.Server.String(),
-		Key:     app.Key,
-		Verbose: app.Verbose,
-		Help:    app.Help,
-		Version: app.Version,
-		Detach:  app.Detach,
-	}
-}
-
-func alias2app(t *storage.Tunnel) cli.App {
-	local := cli.HostInput{}
-	local.Set(t.Local)
-
-	remote := cli.HostInput{}
-	remote.Set(t.Remote)
-
-	server := cli.HostInput{}
-	server.Set(t.Server)
-
-	return cli.App{
-		Command: "start",
-		Local:   local,
-		Remote:  remote,
-		Server:  server,
-		Key:     t.Key,
-		Verbose: t.Verbose,
-		Help:    t.Help,
-		Version: t.Version,
-		Detach:  t.Detach,
-	}
 }

@@ -7,52 +7,52 @@ import (
 	"github.com/davrodpin/mole/cli"
 )
 
-func TestHostInput(t *testing.T) {
+func TestAddressInput(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected cli.HostInput
+		expected cli.AddressInput
 	}{
 		{
 			"test",
-			cli.HostInput{User: "", Host: "test", Port: ""},
+			cli.AddressInput{User: "", Host: "test", Port: ""},
 		},
 		{
 			"user@test",
-			cli.HostInput{User: "user", Host: "test", Port: ""},
+			cli.AddressInput{User: "user", Host: "test", Port: ""},
 		},
 		{
 			"user@test:2222",
-			cli.HostInput{User: "user", Host: "test", Port: "2222"},
+			cli.AddressInput{User: "user", Host: "test", Port: "2222"},
 		},
 		{
 			"test-1",
-			cli.HostInput{User: "", Host: "test-1", Port: ""},
+			cli.AddressInput{User: "", Host: "test-1", Port: ""},
 		},
 		{
 			"test-1-2-xy",
-			cli.HostInput{User: "", Host: "test-1-2-xy", Port: ""},
+			cli.AddressInput{User: "", Host: "test-1-2-xy", Port: ""},
 		},
 		{
 			"test.com",
-			cli.HostInput{User: "", Host: "test.com", Port: ""},
+			cli.AddressInput{User: "", Host: "test.com", Port: ""},
 		},
 		{
 			"test_1",
-			cli.HostInput{User: "", Host: "test_1", Port: ""},
+			cli.AddressInput{User: "", Host: "test_1", Port: ""},
 		},
 		{
 			"user@test_1",
-			cli.HostInput{User: "user", Host: "test_1", Port: ""},
+			cli.AddressInput{User: "user", Host: "test_1", Port: ""},
 		},
 		{
 			"user@test_1:2222",
-			cli.HostInput{User: "user", Host: "test_1", Port: "2222"},
+			cli.AddressInput{User: "user", Host: "test_1", Port: "2222"},
 		},
 	}
 
-	var h cli.HostInput
+	var h cli.AddressInput
 	for _, test := range tests {
-		h = cli.HostInput{}
+		h = cli.AddressInput{}
 		h.Set(test.input)
 
 		if !reflect.DeepEqual(test.expected, h) {
@@ -128,11 +128,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			[]string{"./mole", "-alias", "xyz", "-server", "example1"},
-			false,
-		},
-		{
-			[]string{"./mole", "-alias", "xyz", "-server", "example1"},
-			false,
+			true,
 		},
 		{
 			[]string{"./mole", "-alias", "xyz", "-remote", ":443"},
@@ -141,6 +137,18 @@ func TestValidate(t *testing.T) {
 		{
 			[]string{"./mole", "-alias", "xyz"},
 			false,
+		},
+		{
+			[]string{"./mole", "-local", ":8080", "-remote", ":80", "-server", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "-remote", ":3366", "-remote", ":443", "-server", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "-local", ":1234", "-remote", ":3366", "-remote", ":443", "-server", "example1"},
+			true,
 		},
 	}
 

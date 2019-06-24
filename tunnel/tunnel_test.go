@@ -110,138 +110,90 @@ func TestServerOptions(t *testing.T) {
 	}
 }
 
-func TestTunnelOptions(t *testing.T) {
-	server := &Server{Name: "s"}
-	tests := []struct {
-		local    string
-		server   *Server
-		remote   string
-		expected *Tunnel
-	}{
-		{
-			"172.17.0.10:2222",
-			server,
-			"172.17.0.10:2222",
-			&Tunnel{
-				local:  "172.17.0.10:2222",
-				server: server,
-				remote: "172.17.0.10:2222",
-			},
-		},
-		{
-			"",
-			server,
-			"172.17.0.10:2222",
-			&Tunnel{
-				local:  "127.0.0.1:0",
-				server: server,
-				remote: "172.17.0.10:2222",
-			},
-		},
-		{
-			":8443",
-			server,
-			":443",
-			&Tunnel{
-				local:  "127.0.0.1:8443",
-				server: server,
-				remote: "127.0.0.1:443",
-			},
-		},
-	}
-
-	for _, test := range tests {
-		tun := New(test.local, test.server, test.remote)
-
-		if test.expected.local != tun.local {
-			t.Errorf("unexpected local result : expected: %s, result: %s", test.expected, tun)
-		}
-
-		if test.expected.remote != tun.remote {
-			t.Errorf("unexpected remote result : expected: %s, result: %s", test.expected, tun)
-		}
-
-		if !reflect.DeepEqual(test.expected.server, tun.server) {
-			t.Errorf("unexpected server result : expected: %s, result: %s", test.expected, tun)
-		}
-
-	}
-
-}
-
 func TestTunnel(t *testing.T) {
-	expected := "ABC"
-	tun := prepareTunnel(t, false)
+	tun := prepareTunnel(t, 1, false)
 
 	select {
 	case <-tun.Ready:
 		t.Log("tunnel is ready to accept connections")
 	case <-time.After(1 * time.Second):
-		t.Errorf("no connection after a while")
+		t.Errorf("error waiting for tunnel to be ready")
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s", tun.listener.Addr(), expected))
+	expected := "ABC"
+	err := validateTunnelConnectivity(expected, tun)
 	if err != nil {
-		t.Errorf("error while making local connection: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	response := string(body)
-
-	if expected != response {
-		t.Errorf("expected: %s, value: %s", expected, response)
+		t.Errorf("%v", err)
 	}
 
 	tun.Stop()
 }
 
-func TestInsecureTunnel(t *testing.T) {
+func TestTunnelInsecure(t *testing.T) {
 	expected := "ABC"
-	tun := prepareTunnel(t, true)
+	tun := prepareTunnel(t, 1, true)
 
 	select {
 	case <-tun.Ready:
 		t.Log("tunnel is ready to accept connections")
 	case <-time.After(1 * time.Second):
-		t.Errorf("no connection after a while")
+		t.Errorf("error waiting for tunnel to be ready")
 		return
 	}
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/%s", tun.listener.Addr(), expected))
+	err := validateTunnelConnectivity(expected, tun)
 	if err != nil {
-		t.Errorf("error while making local connection: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	response := string(body)
-
-	if expected != response {
-		t.Errorf("expected: %s, value: %s", expected, response)
+		t.Errorf("%v", err)
 	}
 
 	tun.Stop()
 }
 
-func TestRandomLocalPort(t *testing.T) {
-	expected := "127.0.0.1:0"
-	local := ""
-	remote := "172.17.0.1:80"
-	server, _ := NewServer("", "test", "")
+func TestTunnelMultipleRemotes(t *testing.T) {
+	expected := "ABC"
+	tun := prepareTunnel(t, 2, false)
 
-	tun := New(local, server, remote)
-
-	if tun.local != expected {
-		t.Errorf("unexpected local endpoint: expected: %s, value: %s", expected, tun.local)
+	for i := 1; i <= 1; i++ {
+		select {
+		case <-tun.Ready:
+			t.Log("tunnel is ready to accept connections")
+		case <-time.After(1 * time.Second):
+			t.Errorf("error waiting for tunnel to be ready")
+			return
+		}
 	}
+
+	err := validateTunnelConnectivity(expected, tun)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	tun.Stop()
+}
+
+func validateTunnelConnectivity(expected string, tun *Tunnel) error {
+	for _, sshChan := range tun.channels {
+		resp, err := http.Get(fmt.Sprintf("http://%s/%s", sshChan.listener.Addr(), expected))
+		if err != nil {
+			return fmt.Errorf("error while making http request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		body, _ := ioutil.ReadAll(resp.Body)
+		response := string(body)
+
+		if expected != response {
+			return fmt.Errorf("expected: %s, value: %s", expected, response)
+		}
+	}
+
+	return nil
 }
 
 func TestCloseServerConn(t *testing.T) {
-	tun := &Tunnel{local: "127.0.0.1:0", done: make(chan error, 1), Ready: make(chan bool, 1)}
+	sshChans := []*SSHChannel{&SSHChannel{Local: "127.0.0.1:0", Remote: "172.17.0.1:80"}}
+	tun := &Tunnel{channels: sshChans, done: make(chan error, 1), Ready: make(chan bool, 1)}
 	tun.client = &ssh.Client{Conn: MockConn{isConnectionOpen: true}}
 	result := make(chan error)
 
@@ -276,9 +228,111 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestBuildSSHChannels(t *testing.T) {
+	tests := []struct {
+		serverName    string
+		local         []string
+		remote        []string
+		expected      int
+		expectedError error
+	}{
+		{
+			serverName:    "test",
+			local:         []string{":3360"},
+			remote:        []string{":3360"},
+			expected:      1,
+			expectedError: nil,
+		},
+		{
+			serverName:    "test",
+			local:         []string{":3360", ":8080"},
+			remote:        []string{":3360", ":8080"},
+			expected:      2,
+			expectedError: nil,
+		},
+		{
+			serverName:    "test",
+			local:         []string{},
+			remote:        []string{":3360"},
+			expected:      1,
+			expectedError: nil,
+		},
+		{
+			serverName:    "test",
+			local:         []string{":3360"},
+			remote:        []string{":3360", ":8080"},
+			expected:      2,
+			expectedError: nil,
+		},
+		{
+			serverName:    "hostWithLocalForward",
+			local:         []string{},
+			remote:        []string{},
+			expected:      1,
+			expectedError: nil,
+		},
+		{
+			serverName:    "test",
+			local:         []string{":3360", ":8080"},
+			remote:        []string{":3360"},
+			expected:      1,
+			expectedError: nil,
+		},
+		{
+			serverName:    "test",
+			local:         []string{":3360"},
+			remote:        []string{},
+			expected:      0,
+			expectedError: fmt.Errorf(NoRemoteGiven),
+		},
+	}
+
+	for testId, test := range tests {
+		sshChannels, err := BuildSSHChannels(test.serverName, test.local, test.remote)
+		if err != nil {
+			if test.expectedError != nil {
+				if test.expectedError.Error() != err.Error() {
+					t.Errorf("error '%v' was expected, but got '%v'", test.expectedError, err)
+				}
+			} else {
+				t.Errorf("unable to build ssh channels objects for test %d: %v", testId, err)
+			}
+		}
+
+		if test.expected != len(sshChannels) {
+			t.Errorf("wrong number of ssh channel objects created for test %d: expected: %d, value: %d", testId, test.expected, len(sshChannels))
+		}
+
+		localSize := len(test.local)
+		remoteSize := len(test.remote)
+
+		// check if the local addresses match only if any address is given
+		if localSize > 0 && remoteSize > 0 {
+			for i, sshChannel := range sshChannels {
+				local := ""
+				if i < localSize {
+					local = test.local[i]
+				} else {
+					local = RandomPortAddress
+				}
+
+				local = expandAddress(local)
+
+				if sshChannel.Local != local {
+					t.Errorf("local address don't match for test %d: expected: %s, value: %s", testId, sshChannel.Local, local)
+				}
+
+			}
+		}
+	}
+}
+
 // prepareTunnel creates a Tunnel object making sure all infrastructure
 // dependencies (ssh and http servers) are ready.
-func prepareTunnel(t *testing.T, insecure bool) *Tunnel {
+//
+// The 'remotes' argument tells how many remote endpoints will be available
+// through the tunnel.
+func prepareTunnel(t *testing.T, remotes int, insecure bool) *Tunnel {
 	ssh := createSSHServer(keyPath)
 	srv, _ := NewServer("mole", ssh.Addr().String(), "")
 
@@ -288,15 +342,20 @@ func prepareTunnel(t *testing.T, insecure bool) *Tunnel {
 		generateKnownHosts(ssh.Addr().String(), publicKeyPath, knownHostsPath)
 	}
 
-	web := createWebServer()
-	tun := &Tunnel{local: "127.0.0.1:0", server: srv, remote: web.Addr().String(), done: make(chan error), Ready: make(chan bool, 1)}
+	sshChannels := []*SSHChannel{}
+	for i := 1; i <= remotes; i++ {
+		web := createWebServer()
+		sshChannels = append(sshChannels, &SSHChannel{Local: "127.0.0.1:0", Remote: web.Addr().String()})
+	}
 
-	go func(t *testing.T) {
+	tun := &Tunnel{server: srv, channels: sshChannels, done: make(chan error), Ready: make(chan bool, 1)}
+
+	go func(t *testing.T, tun *Tunnel) {
 		err := tun.Start()
 		if err != nil {
 			t.Errorf("tunnel could not be started: %v", err)
 		}
-	}(t)
+	}(t, tun)
 
 	return tun
 }
