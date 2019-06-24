@@ -12,6 +12,7 @@ INFO[0000] listening on local address                    local_address="127.0.0.
 **Highlighted Features**
 
   * [Auto local address selection](#let-mole-to-randomly-select-the-local-endpoint): find a port available and start listening to it, so the `-local` flag doesn't need to be given every time you run the app.
+  * [Create multiple tunnels using a single ssh connection](#create-multiple-tunnels-using-a-single-ssh-connection): multiple tunnels can be established using a single connection to a ssh server by specifying different `-remote` flags.
   * [Aliases](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards): save your tunnel settings under an alias, so it can be reused later.
   * Leverage the SSH Config File: use some options (e.g. user name, identity key and port), specified in *$HOME/.ssh/config* whenever possible, so there is no need to have the same SSH server configuration in multiple places.
 
@@ -133,40 +134,40 @@ brew tap davrodpin/homebrew-mole && brew install mole
 ```sh
 $ mole -help
 usage:
-	mole [-v] [-insecure] [-detach] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
-	mole -alias <alias_name> [-v] [-local [<host>]:<port>] -remote [<host>]:<port> -server [<user>@]<host>[:<port>] [-key <key_path>]
-	mole -alias <alias_name> -delete
-	mole -start <alias_name>
-	mole -help
-	mole -version
+        mole [-v] [-insecure] [-detach] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>]
+        mole -alias <alias_name> [-v] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>]
+        mole -alias <alias_name> -delete
+        mole -start <alias_name>
+        mole -help
+        mole -version
 
   -alias string
-    	Create a tunnel alias
+        Create a tunnel alias
   -aliases
-    	list all aliases
+        list all aliases
   -delete
-    	delete a tunnel alias (must be used with -alias)
+        delete a tunnel alias (must be used with -alias)
   -detach
-    	(optional) run process in background
+        (optional) run process in background
   -help
-    	list all options available
+        list all options available
   -insecure
-    	(optional) skip host key validation when connecting to ssh server
+        (optional) skip host key validation when connecting to ssh server
   -key string
-    	(optional) Set server authentication key file path
+        (optional) Set server authentication key file path
   -local value
-    	(optional) Set local endpoint address: [<host>]:<port>
+        (optional) Set local endpoint address: [<host>]:<port>. Multiple -local args can be provided.
   -remote value
-    	set remote endpoint address: [<host>]:<port>
+        (optional) Set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided.
   -server value
-    	set server address: [<user>@]<host>[:<port>]
+        set server address: [<user>@]<host>[:<port>]
   -start string
-    	Start a tunnel using a given alias
+        Start a tunnel using a given alias
   -stop string
-    	stop background process
-  -v	(optional) Increase log verbosity
+        stop background process
+  -v    (optional) Increase log verbosity
   -version
-    	display the mole version
+        display the mole version
 ```  
 
 ## Examples
@@ -175,11 +176,13 @@ usage:
 
 ```sh
 $ mole -v -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -key ~/.ssh/id_rsa
-DEBU[0000] cli options                                   key=/home/mole/.ssh/id_rsa local="127.0.0.1:8080" remote="172.17.0.100:80" server="user@example.com:22" v=true
-DEBU[0000] using ssh config file from: /home/mole/.ssh/config
-DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
-DEBU[0000] tunnel: [local:127.0.0.1:8080, server:example.com:22, remote:172.17.0.100:80]
-INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+$ ./mole -v -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server user@example.com:22 -key ~/.ssh/id_rsa
+DEBU[0000] cli options                                   options="[local=127.0.0.1:8080, remote=172.17.0.100:80, server=user@example.com:22, key=/Users/mole/.ssh/id_rsa, verbose=true, help=false, version=false, detach=false]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example.com, address=example.com:22, user=user]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8080, remote=172.17.0.100:80]], server:example.com:22]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+INFO[0000] tunnel is ready                               local="127.0.0.1:8080" remote="172.17.0.100:80"
 ```
 
 ### Use the ssh config file to lookup a given server host
@@ -187,56 +190,65 @@ INFO[0000] listening on local address                    local_address="127.0.0.
 ```sh
 $ cat $HOME/.ssh/config
 Host example1
-  Hostname 10.0.0.12
-  Port 2222
-  User user
-  IdentityFile ~/.ssh/id_rsa
-$ mole -v -local 127.0.0.1:8080 -remote 172.17.0.100:80 -server example1
-DEBU[0000] cli options                                   key= local="127.0.0.1:8080" remote="172.17.0.100:80" server=example1 v=true
-DEBU[0000] using ssh config file from: /home/mole/.ssh/config
-DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
-DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:172.17.0.100:80]
-INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+  User mole
+  Hostname 127.0.0.1
+  Port 22122
+  IdentityFile test-env/ssh-server/keys/key
+$ mole -v -local 127.0.0.1:8080 -remote 192.168.33.11:80 -server example1
+DEBU[0000] cli options                                   options="[local=127.0.0.1:8080, remote=192.168.33.11:80, server=example1, key=, verbose=true, help=false, version=false, detach=false]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=127.0.0.1:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8080, remote=192.168.33.11:80]], server:127.0.0.1:22122]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] new connection established to server          server="[name=example1, address=127.0.0.1:22122, user=mole]"
+INFO[0000] tunnel is ready                               local="127.0.0.1:8080" remote="192.168.33.11:80"
 ```
 
 ### Let mole to randomly select the local endpoint
 
 ```sh
 $ mole -remote 172.17.0.100:80 -server example1
-INFO[0000] listening on local address                    local_address="127.0.0.1:61305"
+INFO[0000] tunnel is ready                               local="127.0.0.1:61305" remote="192.168.33.11:80"
 ```
 ### Bind the local address to 127.0.0.1 by specifying only the local port
 
 ```sh
-$ mole -v -local :8080 -remote 172.17.0.100:80 -server example1
-DEBU[0000] cli options                                   key= local="127.0.0.1:8080" remote="172.17.0.100:80" server=example1 v=true
-DEBU[0000] using ssh config file from: /home/mole/.ssh/config
-DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
-DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:172.17.0.100:80]
-INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+$ mole -v -local :8080 -remote 192.168.33.10:80 -server example1
+DEBU[0000] cli options                                   options="[local=127.0.0.1:8080, remote=192.168.33.11:80, server=example1, key=, verbose=true, help=false, version=false, detach=false]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=127.0.0.1:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8080, remote=192.168.33.11:80]], server:127.0.0.1:22122]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] new connection established to server          server="[name=example1, address=127.0.0.1:22122, user=mole]"
+INFO[0000] tunnel is ready                               local="127.0.0.1:8080" remote="192.168.33.11:80"
 ```
 
 ### Connect to a remote service that is running on 127.0.0.1 by specifying only the remote port
 
 ```sh
-$ mole -v -local 127.0.0.1:8080 -remote :80 -server example1
-DEBU[0000] cli options                                   key= local="127.0.0.1:8080" remote="127.0.0.1:80" server=example1 v=true
-DEBU[0000] using ssh config file from: /home/mole/.ssh/config
-DEBU[0000] server: [name=example1, address=10.0.0.12:2222, user=user, key=/home/mole/.ssh/id_rsa]
-DEBU[0000] tunnel: [local:127.0.0.1:8080, server:10.0.0.12:2222, remote:127.0.0.1:80]
-INFO[0000] listening on local address                    local_address="127.0.0.1:8080"
+$ mole -v -local 127.0.0.1:8080 -remote :80 -server example2
+DEBU[0000] cli options                                   options="[local=127.0.0.1:8080, remote=127.0.0.1:80, server=example1, key=, verbose=true, help=false, version=false, detach=false]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=127.0.0.1:22222, user=mole]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8080, remote=127.0.0.1:80]], server:127.0.0.1:22222]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] new connection established to server          server="[name=example1, address=127.0.0.1:22222, user=mole]"
+INFO[0000] tunnel is ready                               local="127.0.0.1:8080" remote="127.0.0.1:80"
 ```
 
 ### Create an alias, so there is no need to remember the tunnel settings afterwards
 
 ```sh
-$ mole -alias example1 -v -local :8443 -remote :443 -server user@example.com
+$ mole -alias example1 -v -local :8443 -remote :443 -server mole@example.com
 $ mole -start example1
-DEBU[0000] cli options                                   options="[local=:8443, remote=:443, server=user@example.com, key=, verbose=true, help=false, version=false]"
-DEBU[0000] using ssh config file from: /home/mole/.ssh/config
-DEBU[0000] server: [name=example.com, address=example.com:22, user=user, key=/home/mole/.ssh/id_rsa]
-DEBU[0000] tunnel: [local:127.0.0.1:8443, server:example.com:22, remote:127.0.0.1:443]
-INFO[0000] listening on local address                    local_address="127.0.0.1:8443"
+DEBU[0000] cli options                                   options="[local=127.0.0.1:8443, remote=127.0.0.1:443, server=mole@example.com, key=, verbose=true, help=false, version=false, detach=false]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example.com, address=127.0.0.1:22222, user=mole]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8443, remote=127.0.0.1:443]], server:127.0.0.1:22222]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] new connection established to server          server="[name=example.com, address=127.0.0.1:22222, user=mole]"
+INFO[0000] tunnel is ready                               local="127.0.0.1:8443" remote="127.0.0.1:443"
+
 ```
 
 ### Start mole in background
@@ -260,11 +272,28 @@ Host example
   Port 22122
   LocalForward 21112 192.168.33.11:80
   IdentityFile test-env/ssh-server/keys/key
-$ mole -v -server example
-DEBU[0000] cli options                                   options="[local=, remote=, server=example, key=, verbose=true, help=false, version=false, detach=false]"
+$ mole -v -server example1
+DEBU[0000] cli options                                   options="[local=, remote=, server=example1, key=, verbose=true, help=false, version=false, detach=false]"
 DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
-DEBU[0000] server: [name=example, address=127.0.0.1:22122, user=mole]
+DEBU[0000] server: [name=example1, address=127.0.0.1:22122, user=mole]
 DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
-DEBU[0000] tunnel: [local:127.0.0.1:21112, server:127.0.0.1:22122, remote:192.168.33.11:80]
-INFO[0000] listening on local address                    local_address="127.0.0.1:21112"
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:21112, remote=192.168.33.10:80]], server:127.0.0.1:22122]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] new connection established to server          server="[name=example1, address=127.0.0.1:22122, user=mole]"
+INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.10:80"
 ```
+
+### Create multiple tunnels using a single ssh connection
+
+```sh
+$ mole -v -local :8080 -local :3306 -remote 172.17.0.1:80 -remote 172.17.0.2:3306 -server example1
+DEBU[0000] cli options                                   options="[local=:8080,:3306, remote=172.17.0.1:80,172.17.0.2:3306, server=example1, key=, verbose=true, help=false, version=false, detach=false]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=127.0.0.1:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8080, remote=172.17.0.1:80] [local=127.0.0.1:3306, remote=172.17.0.2:3306]], server:127.0.0.1:22122]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] new connection established to server          server="[name=example1, address=127.0.0.1:22122, user=mole]"
+INFO[0000] tunnel is ready                               local="127.0.0.1:3306" remote="172.17.0.2:3306"
+INFO[0000] tunnel is ready                               local="127.0.0.1:8080" remote="172.17.0.1:80"
+```
+
