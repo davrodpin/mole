@@ -166,40 +166,30 @@ func (t *Tunnel) Start() error {
 		return err
 	}
 
-	ready := make(chan *SSHChannel)
+	wg := &sync.WaitGroup{}
+	wg.Add(len(t.channels))
 
-	//TODO: use waitgroup!
-	// wait for all port startChannels to be ready to accept connections then sends a
-	// message signalling the tunnel is ready
-	go func(tunnel *Tunnel) {
-		n := 0
-		for {
-			select {
-			case ch := <-ready:
-				log.WithFields(log.Fields{
-					"local":  ch.Local,
-					"remote": ch.Remote,
-				}).Info("tunnel is ready")
-
-				n = n + 1
-
-				if n == len(tunnel.channels) {
-					tunnel.Ready <- true
-					return
-				}
-			}
-		}
-	}(t)
+	// wait for all ssh channels to be ready to accept connections then sends a
+	// single message signalling all tunnel are ready
+	go func(tunnel *Tunnel, waitgroup *sync.WaitGroup) {
+		waitgroup.Wait()
+		tunnel.Ready <- true
+	}(t, wg)
 
 	for _, ch := range t.channels {
-		go func(channel *SSHChannel) {
-			var once sync.Once
+		go func(channel *SSHChannel, waitgroup *sync.WaitGroup) {
 			var err error
+			var once sync.Once
 
 			for {
 
 				once.Do(func() {
-					ready <- channel
+					log.WithFields(log.Fields{
+						"local":  channel.Local,
+						"remote": channel.Remote,
+					}).Info("tunnel is ready")
+
+					waitgroup.Done()
 				})
 
 				channel.conn, err = channel.listener.Accept()
@@ -218,7 +208,7 @@ func (t *Tunnel) Start() error {
 					return
 				}
 			}
-		}(ch)
+		}(ch, wg)
 	}
 
 	select {
