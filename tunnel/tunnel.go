@@ -296,8 +296,6 @@ func (t *Tunnel) dial() error {
 	return nil
 }
 
-//TODO: make ticker time configuration through CLI
-// https://github.com/golang/go/issues/21478
 func (t *Tunnel) keepAlive() {
 	ticker := time.NewTicker(t.KeepAliveInterval)
 
