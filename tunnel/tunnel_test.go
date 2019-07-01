@@ -349,6 +349,7 @@ func prepareTunnel(t *testing.T, remotes int, insecure bool) *Tunnel {
 	}
 
 	tun := &Tunnel{server: srv, channels: sshChannels, done: make(chan error), Ready: make(chan bool, 1)}
+	tun.KeepAliveInterval = 10 * time.Second
 
 	go func(t *testing.T, tun *Tunnel) {
 		err := tun.Start()

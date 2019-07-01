@@ -62,6 +62,8 @@ This port is published on the local computer using port `22122`, so ssh
 connections can be made using address `127.0.0.1:22122`.
 All ssh connection to `mole_ssh` should be done using the user `mole` and the
 key file located on `test-env/key`
+The ssh server is configured to end any connections that is idle for three (3)
+or more seconds.
 
 `mole_http` runs two http servers listening on port `80` and `8080`, so clients
 would be able to access the using the following urls: `http://192.168.33.11:80/`
@@ -84,7 +86,7 @@ The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 ```sh
 $ make test-env
 <lots of output messages here>
-$ mole -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key
+$ mole -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key -keep-alive-interval 2s
 INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
 INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
 $ curl 127.0.0.1:21112

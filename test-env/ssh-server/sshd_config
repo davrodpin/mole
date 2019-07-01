@@ -7,3 +7,5 @@ AuthorizedKeysFile	.ssh/authorized_keys
 SyslogFacility AUTH
 LogLevel INFO
 AllowAgentForwarding yes
+ClientAliveInterval 3
+ClientAliveCountMax 0
