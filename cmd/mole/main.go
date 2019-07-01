@@ -269,6 +269,8 @@ func start(app *cli.App) error {
 		return err
 	}
 
+	t.KeepAliveInterval = app.KeepAliveInterval
+
 	if err = t.Start(); err != nil {
 		log.WithFields(log.Fields{
 			"tunnel": t.String(),

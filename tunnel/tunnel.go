@@ -121,7 +121,11 @@ func (ch SSHChannel) String() string {
 // remote endpoints.
 type Tunnel struct {
 	// Ready tells when the Tunnel is ready to accept connections
-	Ready    chan bool
+	Ready chan bool
+	// KeepAliveInterval is the time period used to send keep alive packets to
+	// the remote ssh server
+	KeepAliveInterval time.Duration
+
 	server   *Server
 	channels []*SSHChannel
 	done     chan error
@@ -283,11 +287,29 @@ func (t *Tunnel) dial() error {
 		return fmt.Errorf("server dial error: %s", err)
 	}
 
+	go t.keepAlive()
+
 	log.WithFields(log.Fields{
 		"server": t.server,
 	}).Debug("new connection established to server")
 
 	return nil
+}
+
+//TODO: make ticker time configuration through CLI
+// https://github.com/golang/go/issues/21478
+func (t *Tunnel) keepAlive() {
+	ticker := time.NewTicker(t.KeepAliveInterval)
+
+	for {
+		select {
+		case <-ticker.C:
+			_, _, err := t.client.SendRequest("keepalive@mole", true, nil)
+			if err != nil {
+				log.Warnf("error sending keep-alive request to ssh server: %v", err)
+			}
+		}
+	}
 }
 
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
