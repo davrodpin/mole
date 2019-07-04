@@ -96,18 +96,19 @@ func TestHandlePassword(t *testing.T) {
 func TestUpdatePassphrase(t *testing.T) {
 	key, _ := NewPemKey("testdata/dotssh/id_rsa_encrypted", "mole")
 
-	if err := key.updatePassphrase([]byte("hello")); err != nil {
-		t.Error(err)
-	}
+	key.updatePassphrase([]byte("hello"))
 	if !key.passphrase.EqualTo([]byte("hello")) {
 		t.Error("update failed")
 	}
 
 	key = new(PemKey) // nil
-	if err := key.updatePassphrase([]byte("bye")); err != nil {
-		t.Error(err)
-	}
+	key.updatePassphrase([]byte("bye"))
 	if !key.passphrase.EqualTo([]byte("bye")) {
 		t.Error("update failed")
+	}
+
+	key.updatePassphrase([]byte(""))
+	if key.passphrase != nil {
+		t.Error("expected nil passphrase")
 	}
 }
