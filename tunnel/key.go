@@ -107,17 +107,13 @@ func (pk *PemKey) HandlePassphrase(handler func() ([]byte, error)) error {
 }
 
 func (pk *PemKey) updatePassphrase(pp []byte) error {
-	if pk.passphrase == nil {
-		lb, err := memguard.NewImmutableFromBytes([]byte(pp))
-		if err != nil {
-			return err
-		}
-		pk.passphrase = lb
-	} else {
-		if err := pk.passphrase.Move(pp); err != nil {
-			return err
-		}
+	lb := memguard.NewBufferFromBytes(pp)
+
+	if pk.passphrase != nil {
+		pk.passphrase.Destroy()
 	}
+
+	pk.passphrase = lb
 
 	return nil
 }
