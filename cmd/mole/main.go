@@ -19,10 +19,9 @@ var version = "unversioned"
 var instancesDir string
 
 func main() {
-
 	// memguard is used to securely keep sensitive information in memory.
 	// This call makes sure all data will be destroy when the program exits.
-	defer memguard.DestroyAll()
+	defer memguard.Purge()
 
 	app := cli.New(os.Args)
 	err := app.Parse()

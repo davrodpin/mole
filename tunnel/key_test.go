@@ -82,8 +82,8 @@ func TestHandlePassword(t *testing.T) {
 		}
 
 		if enc {
-			if test.passphrase != string(key.passphrase.Buffer()) {
-				t.Errorf("passphrases don't match for key %s: expected: %s, result: %s", test.keyPath, test.passphrase, string(key.passphrase.Buffer()))
+			if test.passphrase != string(key.passphrase.Bytes()) {
+				t.Errorf("passphrases don't match for key %s: expected: %s, result: %s", test.keyPath, test.passphrase, string(key.passphrase.Bytes()))
 			}
 		} else {
 			if nil != key.passphrase {

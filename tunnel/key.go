@@ -66,11 +66,11 @@ func (k *PemKey) Parse() (ssh.Signer, error) {
 	}
 
 	if enc {
-		if len(k.passphrase.Buffer()) == 0 {
+		if k.passphrase.Size() == 0 {
 			return nil, fmt.Errorf("can't read protected ssh key because no passphrase was not provided")
 		}
 
-		signer, err = ssh.ParsePrivateKeyWithPassphrase(k.Data, k.passphrase.Buffer())
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(k.Data, k.passphrase.Bytes())
 		if err != nil {
 			return nil, err
 		}
