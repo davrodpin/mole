@@ -9,7 +9,7 @@ import (
 	"github.com/davrodpin/mole/cli"
 	"github.com/davrodpin/mole/storage"
 	"github.com/davrodpin/mole/tunnel"
-	uuid "github.com/satori/go.uuid"
+	"github.com/gofrs/uuid"
 	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -209,7 +209,12 @@ func start(app *cli.App) error {
 		if app.Alias != "" {
 			alias = app.Alias
 		} else {
-			alias = uuid.NewV4().String()[:8]
+			u, err := uuid.NewV4()
+			if err != nil {
+				log.Errorf("error could not generate uuid: %v", err)
+				return err
+			}
+			alias = u.String()[:8]
 		}
 		err := startDaemonProcess(alias)
 		if err != nil {
