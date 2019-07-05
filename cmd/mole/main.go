@@ -209,7 +209,14 @@ func start(app *cli.App) error {
 		if app.Alias != "" {
 			alias = app.Alias
 		} else {
-			alias = uuid.NewV4().String()[:8]
+			u, err := uuid.NewV4()
+			if err != nil {
+				log.WithFields(log.Fields{
+					"daemon": app.Alias,
+				}).Errorf("error generating uuid: %v", err)
+				return err
+			}
+			alias = u.String()[:8]
 		}
 		err := startDaemonProcess(alias)
 		if err != nil {
