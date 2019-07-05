@@ -82,13 +82,33 @@ func TestHandlePassword(t *testing.T) {
 		}
 
 		if enc {
-			if test.passphrase != string(key.passphrase.Buffer()) {
-				t.Errorf("passphrases don't match for key %s: expected: %s, result: %s", test.keyPath, test.passphrase, string(key.passphrase.Buffer()))
+			if test.passphrase != key.passphrase.String() {
+				t.Errorf("passphrases don't match for key %s: expected: %s, result: %s", test.keyPath, test.passphrase, key.passphrase.String())
 			}
 		} else {
 			if nil != key.passphrase {
 				t.Errorf("passphared is suppoed to be nil for %s", test.keyPath)
 			}
 		}
+	}
+}
+
+func TestUpdatePassphrase(t *testing.T) {
+	key, _ := NewPemKey("testdata/dotssh/id_rsa_encrypted", "mole")
+
+	key.updatePassphrase([]byte("hello"))
+	if !key.passphrase.EqualTo([]byte("hello")) {
+		t.Error("update failed")
+	}
+
+	key = new(PemKey) // nil
+	key.updatePassphrase([]byte("bye"))
+	if !key.passphrase.EqualTo([]byte("bye")) {
+		t.Error("update failed")
+	}
+
+	key.updatePassphrase([]byte(""))
+	if key.passphrase != nil {
+		t.Error("expected nil passphrase")
 	}
 }

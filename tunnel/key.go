@@ -35,10 +35,7 @@ func NewPemKey(keyPath, passphrase string) (*PemKey, error) {
 	k := &PemKey{Data: data}
 
 	if passphrase != "" {
-		err = k.updatePassphrase([]byte(passphrase))
-		if err != nil {
-			return nil, err
-		}
+		k.updatePassphrase([]byte(passphrase))
 	}
 
 	return k, nil
@@ -66,11 +63,11 @@ func (k *PemKey) Parse() (ssh.Signer, error) {
 	}
 
 	if enc {
-		if len(k.passphrase.Buffer()) == 0 {
-			return nil, fmt.Errorf("can't read protected ssh key because no passphrase was not provided")
+		if k.passphrase == nil {
+			return nil, fmt.Errorf("can't read protected ssh key because no passphrase was provided")
 		}
 
-		signer, err = ssh.ParsePrivateKeyWithPassphrase(k.Data, k.passphrase.Buffer())
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(k.Data, k.passphrase.Bytes())
 		if err != nil {
 			return nil, err
 		}
@@ -86,8 +83,8 @@ func (k *PemKey) Parse() (ssh.Signer, error) {
 
 // HandlePassphrase securely records a passphrase given by a callback to the
 // memory.
-func (pk *PemKey) HandlePassphrase(handler func() ([]byte, error)) error {
-	enc, err := pk.IsEncrypted()
+func (k *PemKey) HandlePassphrase(handler func() ([]byte, error)) error {
+	enc, err := k.IsEncrypted()
 	if err != nil {
 		return fmt.Errorf("error while reading ssh key: %v", err)
 	}
@@ -101,25 +98,22 @@ func (pk *PemKey) HandlePassphrase(handler func() ([]byte, error)) error {
 		return fmt.Errorf("error while reading password: %v", err)
 	}
 
-	pk.updatePassphrase(pp)
+	k.updatePassphrase(pp)
 
 	return nil
 }
 
-func (pk *PemKey) updatePassphrase(pp []byte) error {
-	if pk.passphrase == nil {
-		lb, err := memguard.NewImmutableFromBytes([]byte(pp))
-		if err != nil {
-			return err
-		}
-		pk.passphrase = lb
-	} else {
-		if err := pk.passphrase.Move(pp); err != nil {
-			return err
-		}
+func (k *PemKey) updatePassphrase(pp []byte) {
+	if k.passphrase != nil {
+		k.passphrase.Destroy()
 	}
 
-	return nil
+	if len(pp) < 1 {
+		k.passphrase = nil
+		return
+	}
+
+	k.passphrase = memguard.NewBufferFromBytes(pp)
 }
 
 func decodePemKey(data []byte) (*pem.Block, error) {
