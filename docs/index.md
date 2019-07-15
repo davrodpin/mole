@@ -34,6 +34,7 @@ INFO[0000] listening on local address                    local_address="127.0.0.
   * [Create an alias, so there is no need to remember the tunnel settings afterwards](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards)
   * [Start mole in background](#start-mole-in-background)
   * [Leveraging LocalForward from SSH configuration file](#leveraging-localforward-from-ssh-configuration-file)
+  * [Create multiple tunnels using a single ssh connection](#create-multiple-tunnels-using-a-single-ssh-connection)
 
 # Use Cases
 
