@@ -52,10 +52,10 @@ func NewServer(user, address, key string) (*Server, error) {
 	}
 
 	h := c.Get(host)
-	hostname = reconcileHostname(host, h.Hostname)
-	port = reconcilePort(port, h.Port)
-	user = reconcileUser(user, h.User)
-	key = reconcileKey(key, h.Key)
+	hostname = reconcile(h.Hostname, host)
+	port = reconcile(port, h.Port)
+	user = reconcile(user, h.User)
+	key = reconcile(key, h.Key)
 
 	if host == "" {
 		return nil, fmt.Errorf(HostMissing)
@@ -364,52 +364,12 @@ func knownHostsCallback(insecure bool) (ssh.HostKeyCallback, error) {
 	return clb, nil
 }
 
-func reconcileHostname(givenHostname, resolvedHostname string) string {
-	if resolvedHostname != "" {
-		return resolvedHostname
+func reconcile(precident, subsequent string) string {
+	if precident != "" {
+		return precident
 	}
 
-	if resolvedHostname == "" && givenHostname != "" {
-		return givenHostname
-	}
-
-	return ""
-}
-
-func reconcilePort(givenPort, resolvedPort string) string {
-	if givenPort != "" {
-		return givenPort
-	}
-
-	if givenPort == "" && resolvedPort != "" {
-		return resolvedPort
-	}
-
-	return ""
-}
-
-func reconcileUser(givenUser, resolvedUser string) string {
-	if givenUser != "" {
-		return givenUser
-	}
-
-	if givenUser == "" && resolvedUser != "" {
-		return resolvedUser
-	}
-
-	return ""
-}
-
-func reconcileKey(givenKey, resolvedKey string) string {
-	if givenKey != "" {
-		return givenKey
-	}
-
-	if givenKey == "" && resolvedKey != "" {
-		return resolvedKey
-	}
-
-	return ""
+	return subsequent
 }
 
 func expandAddress(address string) string {
