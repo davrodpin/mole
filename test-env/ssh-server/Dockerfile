@@ -1,6 +1,11 @@
 FROM alpine:3.6
 
-RUN apk update && apk add shadow libcap openssh tcpdump
+RUN apk update && apk add \
+      shadow \
+      libcap \
+      openssh \
+      tcpdump \
+      supervisor
 
 COPY sshd_config /etc/ssh/sshd_config
 COPY motd /etc/motd
@@ -13,4 +18,9 @@ RUN chgrp mole /usr/sbin/tcpdump && chmod 750 /usr/sbin/tcpdump && setcap cap_ne
 
 COPY authorized_keys /home/mole/.ssh/
 
-CMD /usr/sbin/sshd -D
+COPY supervisord.conf /etc/supervisord.conf
+RUN mkdir -p /var/log/supervisor
+
+#CMD /usr/sbin/sshd -D
+ENTRYPOINT ["/usr/bin/supervisord"]
+CMD ["-n", "-c", "/etc/supervisord.conf"]

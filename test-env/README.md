@@ -98,6 +98,12 @@ $ curl 127.0.0.1:21113
 NOTE: If you're wondering about the smile face, that is the response from both 
 http servers.
 
+## How to manage the ssh server instance
+
+```sh
+$ docker exec -ti mole_ssh supervisorctl <stop|start|restart> sshd
+```
+
 ## Packet Analisys
 
 If you need to analyze the traffic going through the tunnel, the test
