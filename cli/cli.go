@@ -30,7 +30,7 @@ type App struct {
 	Detach            bool
 	Stop              string
 	AliasList         bool
-	InsecureMode      bool
+	Insecure          bool
 	KeepAliveInterval time.Duration
 }
 
@@ -58,7 +58,7 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.Version, "version", false, "display the mole version")
 	f.BoolVar(&c.Detach, "detach", false, "(optional) run process in background")
 	f.StringVar(&c.Stop, "stop", "", "stop background process")
-	f.BoolVar(&c.InsecureMode, "insecure", false, "(optional) skip host key validation when connecting to ssh server")
+	f.BoolVar(&c.Insecure, "insecure", false, "(optional) skip host key validation when connecting to ssh server")
 	f.DurationVar(&c.KeepAliveInterval, "keep-alive-interval", 10*time.Second, "(optional) time interval for keep alive packets to be sent")
 
 	f.Parse(c.args[1:])
@@ -125,8 +125,8 @@ func (c *App) PrintUsage() {
 
 // String returns a string representation of an App.
 func (c App) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t]",
-		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t]",
+		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach, c.Insecure)
 }
 
 // AddressInput holds information about a host
