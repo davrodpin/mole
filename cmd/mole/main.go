@@ -240,7 +240,7 @@ func start(app *cli.App) error {
 		return err
 	}
 
-	s.Insecure = app.InsecureMode
+	s.Insecure = app.Insecure
 
 	s.Key.HandlePassphrase(func() ([]byte, error) {
 		fmt.Printf("The key provided is secured by a password. Please provide it below:\n")

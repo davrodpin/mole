@@ -27,12 +27,13 @@ type Alias struct {
 	// since only a single value was supported before.
 	Remote interface{} `toml:"remote"`
 
-	Server  string `toml:"server"`
-	Key     string `toml:"key"`
-	Verbose bool   `toml:"verbose"`
-	Help    bool   `toml:"help"`
-	Version bool   `toml:"version"`
-	Detach  bool   `toml:"detach"`
+	Server   string `toml:"server"`
+	Key      string `toml:"key"`
+	Verbose  bool   `toml:"verbose"`
+	Help     bool   `toml:"help"`
+	Version  bool   `toml:"version"`
+	Detach   bool   `toml:"detach"`
+	Insecure bool   `toml:"insecure"`
 }
 
 func (t Alias) ReadLocal() ([]string, error) {
@@ -60,8 +61,8 @@ func readAddress(address interface{}) ([]string, error) {
 }
 
 func (t Alias) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t]",
-		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version, t.Detach)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t]",
+		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version, t.Detach, t.Insecure)
 }
 
 // Save stores Alias to the Store.
