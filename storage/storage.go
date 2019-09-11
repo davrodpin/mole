@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -27,13 +28,14 @@ type Alias struct {
 	// since only a single value was supported before.
 	Remote interface{} `toml:"remote"`
 
-	Server   string `toml:"server"`
-	Key      string `toml:"key"`
-	Verbose  bool   `toml:"verbose"`
-	Help     bool   `toml:"help"`
-	Version  bool   `toml:"version"`
-	Detach   bool   `toml:"detach"`
-	Insecure bool   `toml:"insecure"`
+	Server            string        `toml:"server"`
+	Key               string        `toml:"key"`
+	Verbose           bool          `toml:"verbose"`
+	Help              bool          `toml:"help"`
+	Version           bool          `toml:"version"`
+	Detach            bool          `toml:"detach"`
+	Insecure          bool          `toml:"insecure"`
+	KeepAliveInterval time.Duration `toml:"keep-alive-interval"`
 }
 
 func (t Alias) ReadLocal() ([]string, error) {
@@ -61,8 +63,8 @@ func readAddress(address interface{}) ([]string, error) {
 }
 
 func (t Alias) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t]",
-		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version, t.Detach, t.Insecure)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, ka-interval=%v]",
+		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version, t.Detach, t.Insecure, t.KeepAliveInterval)
 }
 
 // Save stores Alias to the Store.
