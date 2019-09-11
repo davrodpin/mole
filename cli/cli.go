@@ -125,8 +125,8 @@ func (c *App) PrintUsage() {
 
 // String returns a string representation of an App.
 func (c App) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t]",
-		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach, c.Insecure)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, ka-interval=%v]",
+		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach, c.Insecure, c.KeepAliveInterval)
 }
 
 // AddressInput holds information about a host

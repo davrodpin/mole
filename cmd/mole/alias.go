@@ -26,15 +26,16 @@ func lsAliases() error {
 
 func app2alias(app cli.App) *storage.Alias {
 	return &storage.Alias{
-		Local:    app.Local.List(),
-		Remote:   app.Remote.List(),
-		Server:   app.Server.String(),
-		Key:      app.Key,
-		Verbose:  app.Verbose,
-		Help:     app.Help,
-		Version:  app.Version,
-		Detach:   app.Detach,
-		Insecure: app.Insecure,
+		Local:             app.Local.List(),
+		Remote:            app.Remote.List(),
+		Server:            app.Server.String(),
+		Key:               app.Key,
+		Verbose:           app.Verbose,
+		Help:              app.Help,
+		Version:           app.Version,
+		Detach:            app.Detach,
+		Insecure:          app.Insecure,
+		KeepAliveInterval: app.KeepAliveInterval,
 	}
 }
 
@@ -63,15 +64,16 @@ func alias2app(t *storage.Alias) (*cli.App, error) {
 	server.Set(t.Server)
 
 	return &cli.App{
-		Command:  "start",
-		Local:    lal,
-		Remote:   ral,
-		Server:   server,
-		Key:      t.Key,
-		Verbose:  t.Verbose,
-		Help:     t.Help,
-		Version:  t.Version,
-		Detach:   t.Detach,
-		Insecure: t.Insecure,
+		Command:           "start",
+		Local:             lal,
+		Remote:            ral,
+		Server:            server,
+		Key:               t.Key,
+		Verbose:           t.Verbose,
+		Help:              t.Help,
+		Version:           t.Version,
+		Detach:            t.Detach,
+		Insecure:          t.Insecure,
+		KeepAliveInterval: t.KeepAliveInterval,
 	}, nil
 }
