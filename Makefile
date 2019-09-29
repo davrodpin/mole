@@ -59,4 +59,4 @@ test-env: add-network mole-http mole-ssh
 rm-test-env: rm-mole-http rm-mole-ssh rm-network
 
 site:
-	cd docs/ && bundle exec jekyll serve
+	cd docs/ && bundle install && bundle exec jekyll serve
