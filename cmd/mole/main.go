@@ -241,6 +241,7 @@ func start(app *cli.App) error {
 	}
 
 	s.Insecure = app.Insecure
+	s.Timeout = app.Timeout
 
 	s.Key.HandlePassphrase(func() ([]byte, error) {
 		fmt.Printf("The key provided is secured by a password. Please provide it below:\n")
