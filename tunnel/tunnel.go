@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -49,7 +50,15 @@ func NewServer(user, address, key string) (*Server, error) {
 
 	c, err := NewSSHConfigFile()
 	if err != nil {
-		return nil, fmt.Errorf("error accessing %s: %v", host, err)
+		// Ignore file doesnt exists
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("error accessing %s: %v", host, err)
+		}
+	}
+
+	// // If ssh config file doesnt exists, create an empty ssh config struct to avoid nil pointer deference
+	if errors.Is(err, os.ErrNotExist) {
+		c = NewEmptySSHConfigStruct()
 	}
 
 	h := c.Get(host)
