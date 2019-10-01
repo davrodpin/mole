@@ -61,7 +61,7 @@ func (c *App) Parse() error {
 	f.StringVar(&c.Stop, "stop", "", "stop background process")
 	f.BoolVar(&c.Insecure, "insecure", false, "(optional) skip host key validation when connecting to ssh server")
 	f.DurationVar(&c.KeepAliveInterval, "keep-alive-interval", 10*time.Second, "(optional) time interval for keep alive packets to be sent")
-	f.DurationVar(&c.Timeout, "timeout", 3*time.Second, "(optional) timeout for connections")
+	f.DurationVar(&c.Timeout, "timeout", 3*time.Second, "(optional) ssh server connection timeout")
 
 	f.Parse(c.args[1:])
 
