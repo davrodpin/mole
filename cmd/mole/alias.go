@@ -36,6 +36,7 @@ func app2alias(app cli.App) *storage.Alias {
 		Detach:            app.Detach,
 		Insecure:          app.Insecure,
 		KeepAliveInterval: app.KeepAliveInterval,
+		Timeout:           app.Timeout,
 	}
 }
 
@@ -75,5 +76,6 @@ func alias2app(t *storage.Alias) (*cli.App, error) {
 		Detach:            t.Detach,
 		Insecure:          t.Insecure,
 		KeepAliveInterval: t.KeepAliveInterval,
+		Timeout:           t.Timeout,
 	}, nil
 }

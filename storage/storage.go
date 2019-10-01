@@ -36,6 +36,7 @@ type Alias struct {
 	Detach            bool          `toml:"detach"`
 	Insecure          bool          `toml:"insecure"`
 	KeepAliveInterval time.Duration `toml:"keep-alive-interval"`
+	Timeout           time.Duration `toml:"timeout"`
 }
 
 func (t Alias) ReadLocal() ([]string, error) {
@@ -63,8 +64,8 @@ func readAddress(address interface{}) ([]string, error) {
 }
 
 func (t Alias) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, ka-interval=%v]",
-		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version, t.Detach, t.Insecure, t.KeepAliveInterval)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, ka-interval=%v, timeout=%v]",
+		t.Local, t.Remote, t.Server, t.Key, t.Verbose, t.Help, t.Version, t.Detach, t.Insecure, t.KeepAliveInterval, t.Timeout)
 }
 
 // Save stores Alias to the Store.

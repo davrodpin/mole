@@ -29,6 +29,7 @@ type Server struct {
 	Key     *PemKey
 	// Insecure is a flag to indicate if the host keys should be validated.
 	Insecure bool
+	Timeout  time.Duration
 }
 
 // NewServer creates a new instance of Server using $HOME/.ssh/config to
@@ -327,7 +328,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: clb,
-		Timeout:         3 * time.Second,
+		Timeout:         server.Timeout,
 	}, nil
 }
 
