@@ -260,6 +260,12 @@ func start(app *cli.App) error {
 
 	remote := make([]string, len(app.Remote))
 	for i, r := range app.Remote {
+		if r.Port == "" {
+			err := fmt.Errorf("missing port in remote address: %s", r.String())
+			log.Error(err)
+			return err
+		}
+
 		remote[i] = r.String()
 	}
 
