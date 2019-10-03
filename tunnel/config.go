@@ -41,6 +41,11 @@ func NewSSHConfigFile() (*SSHConfigFile, error) {
 	return &SSHConfigFile{sshConfig: cfg}, nil
 }
 
+func NewEmptySSHConfigStruct() *SSHConfigFile {
+	log.Debugf("generating an empty config struct")
+	return &SSHConfigFile{sshConfig: &ssh_config.Config{}}
+}
+
 // Get consults a ssh config file to extract some ssh server attributes
 // from it, returning a SSHHost. Any attribute which its value is an empty
 // string is an attribute that could not be found in the ssh config file.
