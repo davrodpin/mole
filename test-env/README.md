@@ -86,7 +86,7 @@ The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 ```sh
 $ make test-env
 <lots of output messages here>
-$ mole -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key -keep-alive-interval 2s
+$ mole -v -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key -keep-alive-interval 2s
 INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
 INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
 $ curl 127.0.0.1:21112
@@ -102,6 +102,51 @@ http servers.
 
 ```sh
 $ docker exec -ti mole_ssh supervisorctl <stop|start|restart> sshd
+```
+
+## How to force mole to reconnect to the ssh server
+
+1. Create the mole's test environment
+
+```sh
+$ make test-env
+<lots of output messages here>
+```
+
+2. Start mole
+
+```sh
+$ mole -v -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key -keep-alive-interval 2s
+INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
+INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
+```
+
+3. Kill all ssh processes running on the container holding the ssh server
+
+The container will take care of restarting the ssh server once it gets killed.
+
+```sh
+$ docker exec mole_ssh pgrep sshd
+8
+15
+17
+$ docker exec mole_ssh kill -9 8 15 17
+```
+
+4. The mole's output should be something like the below
+
+```sh
+WARN[0019] reconnecting to ssh server                    error=EOF
+INFO[0022] tunnel channel is waiting for connection      local="127.0.0.1:21113" remote="192.168.33.11:8080"
+INFO[0022] tunnel channel is waiting for connection      local="127.0.0.1:21112" remote="192.168.33.11:80"
+```
+
+5. Validate the tunnel is still working
+
+```sh
+$ curl 127.0.0.1:21112; curl 127.0.0.1:21113
+:)
+:)
 ```
 
 ## Packet Analisys
