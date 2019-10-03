@@ -5,7 +5,7 @@ PubkeyAuthentication yes
 PasswordAuthentication no
 AuthorizedKeysFile	.ssh/authorized_keys
 SyslogFacility AUTH
-LogLevel INFO
+LogLevel DEBUG1
 AllowAgentForwarding yes
 ClientAliveInterval 3
 ClientAliveCountMax 0
