@@ -280,6 +280,12 @@ func start(app *cli.App) error {
 		return err
 	}
 
+	//TODO need to find a way to require the attributes below to be always set
+	// since they are not optional (functionality will break if they are not
+	// set and CLI parsing is the one setting the default values).
+	// That could be done by make them required in the constructor's signature
+	t.ConnectionRetries = app.ConnectionRetries
+	t.WaitAndRetry = app.WaitAndRetry
 	t.KeepAliveInterval = app.KeepAliveInterval
 
 	if err = t.Start(); err != nil {

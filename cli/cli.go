@@ -33,6 +33,8 @@ type App struct {
 	Insecure          bool
 	KeepAliveInterval time.Duration
 	Timeout           time.Duration
+	ConnectionRetries int
+	WaitAndRetry      time.Duration
 }
 
 // New creates a new instance of App.
@@ -46,12 +48,12 @@ func (c *App) Parse() error {
 	f.Usage = c.PrintUsage
 	c.flag = f
 
-	f.StringVar(&c.Alias, "alias", "", "Create a tunnel alias")
+	f.StringVar(&c.Alias, "alias", "", "create a tunnel alias")
 	f.BoolVar(&c.AliasDelete, "delete", false, "delete a tunnel alias (must be used with -alias)")
 	f.BoolVar(&c.AliasList, "aliases", false, "list all aliases")
-	f.StringVar(&c.Start, "start", "", "Start a tunnel using a given alias")
-	f.Var(&c.Local, "local", "(optional) Set local endpoint address: [<host>]:<port>. Multiple -local args can be provided.")
-	f.Var(&c.Remote, "remote", "(optional) Set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided.")
+	f.StringVar(&c.Start, "start", "", "start a tunnel using a given alias")
+	f.Var(&c.Local, "local", "(optional) set local endpoint address: [<host>]:<port>. Multiple -local args can be provided")
+	f.Var(&c.Remote, "remote", "(optional) set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided")
 	f.Var(&c.Server, "server", "set server address: [<user>@]<host>[:<port>]")
 	f.StringVar(&c.Key, "key", "", "(optional) Set server authentication key file path")
 	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
@@ -62,6 +64,8 @@ func (c *App) Parse() error {
 	f.BoolVar(&c.Insecure, "insecure", false, "(optional) skip host key validation when connecting to ssh server")
 	f.DurationVar(&c.KeepAliveInterval, "keep-alive-interval", 10*time.Second, "(optional) time interval for keep alive packets to be sent")
 	f.DurationVar(&c.Timeout, "timeout", 3*time.Second, "(optional) ssh server connection timeout")
+	f.IntVar(&c.ConnectionRetries, "connection-retries", 3, "(optional) maximum number of connection retries to the ssh server. Provide 0 if mole should never give up or negative number to disable retries")
+	f.DurationVar(&c.WaitAndRetry, "retry-wait", 3*time.Second, "(optional) time to wait before trying to reconnect to ssh server")
 
 	f.Parse(c.args[1:])
 
@@ -116,8 +120,8 @@ func (c App) Validate() error {
 // use the tool.
 func (c *App) PrintUsage() {
 	fmt.Fprintf(os.Stderr, "%s\n\n", `usage:
-	mole [-v] [-insecure] [-detach] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>] [-keep-alive-interval <time_interval>]
-	mole -alias <alias_name> [-v] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>] [-keep-alive-interval <time_interval>]
+	mole [-v] [-insecure] [-detach] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>] [-keep-alive-interval <time_interval>] [-connection-retries <retries>] [-retry-wait <time>]
+	mole -alias <alias_name> [-v] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>] [-keep-alive-interval <time_interval>] [-connection-retries <retries>] [-retry-wait <time>]
 	mole -alias <alias_name> -delete
 	mole -start <alias_name>
 	mole -help
@@ -127,8 +131,8 @@ func (c *App) PrintUsage() {
 
 // String returns a string representation of an App.
 func (c App) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, ka-interval=%v, timeout=%v]",
-		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach, c.Insecure, c.KeepAliveInterval, c.Timeout)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, keep-alive-interval=%v, timeout=%v, connection-retries=%d, retry-wait=%s]",
+		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach, c.Insecure, c.KeepAliveInterval, c.Timeout, c.ConnectionRetries, c.WaitAndRetry)
 }
 
 // AddressInput holds information about a host

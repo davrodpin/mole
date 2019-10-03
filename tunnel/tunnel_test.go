@@ -18,6 +18,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+const NoSshRetries = -1
+
 var sshDir string
 var keyPath string
 var encryptedKeyPath string
@@ -111,7 +113,7 @@ func TestServerOptions(t *testing.T) {
 }
 
 func TestTunnel(t *testing.T) {
-	tun := prepareTunnel(t, 1, false)
+	tun, _, _ := prepareTunnel(1, false, NoSshRetries)
 
 	select {
 	case <-tun.Ready:
@@ -121,8 +123,7 @@ func TestTunnel(t *testing.T) {
 		return
 	}
 
-	expected := "ABC"
-	err := validateTunnelConnectivity(expected, tun)
+	err := validateTunnelConnectivity(t, "ABC", tun)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -131,8 +132,7 @@ func TestTunnel(t *testing.T) {
 }
 
 func TestTunnelInsecure(t *testing.T) {
-	expected := "ABC"
-	tun := prepareTunnel(t, 1, true)
+	tun, _, _ := prepareTunnel(1, true, NoSshRetries)
 
 	select {
 	case <-tun.Ready:
@@ -142,7 +142,7 @@ func TestTunnelInsecure(t *testing.T) {
 		return
 	}
 
-	err := validateTunnelConnectivity(expected, tun)
+	err := validateTunnelConnectivity(t, "ABC", tun)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -151,20 +151,17 @@ func TestTunnelInsecure(t *testing.T) {
 }
 
 func TestTunnelMultipleRemotes(t *testing.T) {
-	expected := "ABC"
-	tun := prepareTunnel(t, 2, false)
+	tun, _, _ := prepareTunnel(2, false, NoSshRetries)
 
-	for i := 1; i <= 1; i++ {
-		select {
-		case <-tun.Ready:
-			t.Log("tunnel is ready to accept connections")
-		case <-time.After(1 * time.Second):
-			t.Errorf("error waiting for tunnel to be ready")
-			return
-		}
+	select {
+	case <-tun.Ready:
+		t.Log("tunnel is ready to accept connections")
+	case <-time.After(1 * time.Second):
+		t.Errorf("error waiting for tunnel to be ready")
+		return
 	}
 
-	err := validateTunnelConnectivity(expected, tun)
+	err := validateTunnelConnectivity(t, "ABC", tun)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -172,9 +169,62 @@ func TestTunnelMultipleRemotes(t *testing.T) {
 	tun.Stop()
 }
 
-func validateTunnelConnectivity(expected string, tun *Tunnel) error {
+func TestReconnectSSHServer(t *testing.T) {
+	tun, ssh, _ := prepareTunnel(1, false, 3)
+
+	select {
+	case <-tun.Ready:
+		t.Log("tunnel is ready to accept connections")
+	case <-time.After(1 * time.Second):
+		t.Errorf("error waiting for tunnel to be ready")
+		return
+	}
+
+	err := validateTunnelConnectivity(t, "ABC", tun)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+
+	ssh.Close()
+
+	// http request should fail since ssh server is not running
+	err = validateTunnelConnectivity(t, "DEF", tun)
+	if err == nil {
+		t.Errorf("%v", err)
+		return
+	}
+
+	_, err = createSSHServer(ssh.Addr().String(), keyPath)
+	if err != nil {
+		t.Errorf("error while recreating ssh server: %s", err)
+		return
+	}
+
+	select {
+	case <-tun.Ready:
+		t.Log("tunnel is ready to accept connections")
+	case <-time.After(10 * time.Second): // this is the maximum timeout based on the retries attempts
+		t.Errorf("error waiting for tunnel to be ready")
+		return
+	}
+
+	err = validateTunnelConnectivity(t, "GHJ", tun)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
+	tun.Stop()
+}
+
+func validateTunnelConnectivity(t *testing.T, expected string, tun *Tunnel) error {
 	for _, sshChan := range tun.channels {
-		resp, err := http.Get(fmt.Sprintf("http://%s/%s", sshChan.listener.Addr(), expected))
+		url := fmt.Sprintf("http://%s/%s", sshChan.listener.Addr(), expected)
+		timeout := time.Duration(500 * time.Millisecond)
+		client := http.Client{
+			Timeout: timeout,
+		}
+		resp, err := client.Get(url)
 		if err != nil {
 			return fmt.Errorf("error while making http request: %v", err)
 		}
@@ -189,33 +239,6 @@ func validateTunnelConnectivity(expected string, tun *Tunnel) error {
 	}
 
 	return nil
-}
-
-func TestCloseServerConn(t *testing.T) {
-	sshChans := []*SSHChannel{&SSHChannel{Local: "127.0.0.1:0", Remote: "172.17.0.1:80"}}
-	tun := &Tunnel{channels: sshChans, done: make(chan error, 1), Ready: make(chan bool, 1)}
-	tun.client = &ssh.Client{Conn: MockConn{isConnectionOpen: true}}
-	result := make(chan error)
-
-	go func() {
-		result <- tun.Start()
-	}()
-
-	select {
-	case <-tun.Ready:
-		tun.done <- nil
-		select {
-		case r := <-result:
-			if r != nil {
-				t.Error("ERROR")
-			}
-
-			//TODO check if the connection is closed
-
-		}
-	case <-time.After(1 * time.Second):
-		t.Error("timeout waiting for tunnel to be ready")
-	}
 }
 
 func TestMain(m *testing.M) {
@@ -332,8 +355,16 @@ func TestBuildSSHChannels(t *testing.T) {
 //
 // The 'remotes' argument tells how many remote endpoints will be available
 // through the tunnel.
-func prepareTunnel(t *testing.T, remotes int, insecure bool) *Tunnel {
-	ssh := createSSHServer(keyPath)
+func prepareTunnel(remotes int, insecure bool, sshConnectionRetries int) (tun *Tunnel, ssh net.Listener, hss []*http.Server) {
+	hss = make([]*http.Server, remotes)
+
+	ssh, err := createSSHServer("", keyPath)
+	if err != nil {
+		// FIXME: return the error
+		fmt.Printf("error while creating ssh server: %s", err)
+		return
+	}
+
 	srv, _ := NewServer("mole", ssh.Addr().String(), "")
 
 	srv.Insecure = insecure
@@ -344,21 +375,28 @@ func prepareTunnel(t *testing.T, remotes int, insecure bool) *Tunnel {
 
 	sshChannels := []*SSHChannel{}
 	for i := 1; i <= remotes; i++ {
-		web := createWebServer()
-		sshChannels = append(sshChannels, &SSHChannel{Local: "127.0.0.1:0", Remote: web.Addr().String()})
+		l, hs := createHttpServer()
+		sshChannels = append(sshChannels, &SSHChannel{Local: "127.0.0.1:0", Remote: l.Addr().String()})
+		hss = append(hss, hs)
 	}
 
-	tun := &Tunnel{server: srv, channels: sshChannels, done: make(chan error), Ready: make(chan bool, 1)}
+	tun, _ = New(srv, sshChannels)
+	tun.ConnectionRetries = sshConnectionRetries
+	tun.WaitAndRetry = 3 * time.Second
 	tun.KeepAliveInterval = 10 * time.Second
 
-	go func(t *testing.T, tun *Tunnel) {
-		err := tun.Start()
+	go func(tun *Tunnel) {
+		var err error
+		err = tun.Start()
+		// FIXME: this message should be shown through *testing.t but using it here
+		// would cause the message to be printed after the test ends (goroutine),
+		// making the test to fail
 		if err != nil {
-			t.Errorf("tunnel could not be started: %v", err)
+			fmt.Printf("error returned from tunnel start: %v", err)
 		}
-	}(t, tun)
+	}(tun)
 
-	return tun
+	return tun, ssh, hss
 }
 
 func prepareTestEnv() {
@@ -422,12 +460,13 @@ func get(client http.Client, resource string) (string, error) {
 	return string(body), nil
 }
 
-// createWebServer spawns a new http server, listening on a random user port
-// and providing a response identical to the resource provided by the request.
+// createHttpServer spawns a new http server, listening on a random port.
+// The http server provided an endpoint, /XXX, that will respond, in plain
+// text, with the very same given string.
 //
 // Example: If the request URI is /this-is-a-test, the response will be
 // this-is-a-test
-func createWebServer() net.Listener {
+func createHttpServer() (net.Listener, *http.Server) {
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, r.URL.Path[1:])
@@ -444,7 +483,7 @@ func createWebServer() net.Listener {
 
 	go server.Serve(l)
 
-	return l
+	return l, server
 }
 
 // createSSHServer starts a SSH server that authenticates connections using
@@ -457,7 +496,7 @@ func createWebServer() net.Listener {
 // References:
 // https://gist.github.com/jpillora/b480fde82bff51a06238
 // https://tools.ietf.org/html/rfc4254#section-7.2
-func createSSHServer(keyPath string) net.Listener {
+func createSSHServer(address string, keyPath string) (net.Listener, error) {
 	conf := &ssh.ServerConfig{
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			return &ssh.Permissions{}, nil
@@ -468,12 +507,29 @@ func createSSHServer(keyPath string) net.Listener {
 	p, _ := ssh.ParsePrivateKey(b)
 	conf.AddHostKey(p)
 
-	l, _ := net.Listen("tcp", "127.0.0.1:0")
+	if address == "" {
+		address = "127.0.0.1:0"
+	}
 
-	go func(l net.Listener) {
+	l, err := net.Listen("tcp", address)
+	if err != nil {
+		return nil, fmt.Errorf("error while creating listener: %s", err)
+	}
+
+	go func(listener net.Listener) {
+		var conns []ssh.Conn
 		for {
-			conn, _ := l.Accept()
-			_, chans, reqs, _ := ssh.NewServerConn(conn, conf)
+			conn, err := listener.Accept()
+			if err != nil {
+				// closing all ssh connections if a new client can't connect to the server
+				for _, sc := range conns {
+					sc.Close()
+				}
+				break
+			}
+
+			serverConn, chans, reqs, _ := ssh.NewServerConn(conn, conf)
+			conns = append(conns, serverConn)
 
 			go ssh.DiscardRequests(reqs)
 
@@ -508,7 +564,7 @@ func createSSHServer(keyPath string) net.Listener {
 		}
 	}(l)
 
-	return l
+	return l, nil
 }
 
 // generateKnownHosts creates a new "known_hosts" file on a given path with a
