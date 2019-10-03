@@ -15,6 +15,9 @@ INFO[0000] listening on local address                    local_address="127.0.0.
   * [Create multiple tunnels using a single ssh connection](#create-multiple-tunnels-using-a-single-ssh-connection): multiple tunnels can be established using a single connection to a ssh server by specifying different `-remote` flags.
   * [Aliases](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards): save your tunnel settings under an alias, so it can be reused later.
   * Leverage the SSH Config File: use some options (e.g. user name, identity key and port), specified in *$HOME/.ssh/config* whenever possible, so there is no need to have the same SSH server configuration in multiple places.
+  * Resiliency! Then tunnel will never go down if you don't want it to:
+    * Idle clients do not get disconnected from the ssh server since Mole keeps sending synthetic packets acting as a [keep alive mechanism](#configure-the-time-interval-to-send-keep-alive-packets). 
+    * Auto [reconnection to the ssh server]() if the it is dropped by any reason.
 
 # Table of Contents
 
@@ -35,6 +38,8 @@ INFO[0000] listening on local address                    local_address="127.0.0.
   * [Start mole in background](#start-mole-in-background)
   * [Leveraging LocalForward from SSH configuration file](#leveraging-localforward-from-ssh-configuration-file)
   * [Create multiple tunnels using a single ssh connection](#create-multiple-tunnels-using-a-single-ssh-connection)
+  * [Configure the time interval to send keep alive packets](#configure-the-time-interval-to-send-keep-alive-packets)
+  * [Configure connection retries and retry wait interval](#configure-connection-retries-and-retry-wait-interval)
 
 # Use Cases
 
@@ -132,20 +137,22 @@ brew tap davrodpin/homebrew-mole && brew install mole
 
 # Usage
 
-```sh
-$ mole -help
+```
+$ ./mole -help
 usage:
-        mole [-v] [-insecure] [-detach] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>]
-        mole -alias <alias_name> [-v] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>]
+        mole [-v] [-insecure] [-detach] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>] [-keep-alive-interval <time_interval>] [-connection-retries <retries>] [-retry-wait <time>]
+        mole -alias <alias_name> [-v] (-local [<host>]:<port>)... (-remote [<host>]:<port>)... -server [<user>@]<host>[:<port>] [-key <key_path>] [-keep-alive-interval <time_interval>] [-connection-retries <retries>] [-retry-wait <time>]
         mole -alias <alias_name> -delete
         mole -start <alias_name>
         mole -help
         mole -version
 
   -alias string
-        Create a tunnel alias
+        create a tunnel alias
   -aliases
         list all aliases
+  -connection-retries int
+        (optional) maximum number of connection retries to the ssh server. Provide 0 if mole should never give up or negative number to disable retries (default 3)
   -delete
         delete a tunnel alias (must be used with -alias)
   -detach
@@ -154,18 +161,24 @@ usage:
         list all options available
   -insecure
         (optional) skip host key validation when connecting to ssh server
+  -keep-alive-interval duration
+        (optional) time interval for keep alive packets to be sent (default 10s)
   -key string
         (optional) Set server authentication key file path
   -local value
-        (optional) Set local endpoint address: [<host>]:<port>. Multiple -local args can be provided.
+        (optional) set local endpoint address: [<host>]:<port>. Multiple -local args can be provided
   -remote value
-        (optional) Set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided.
+        (optional) set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided
+  -retry-wait duration
+        (optional) time to wait before trying to reconnect to ssh server (default 3s)
   -server value
         set server address: [<user>@]<host>[:<port>]
   -start string
-        Start a tunnel using a given alias
+        start a tunnel using a given alias
   -stop string
         stop background process
+  -timeout duration
+        (optional) ssh server connection timeout (default 3s)
   -v    (optional) Increase log verbosity
   -version
         display the mole version
@@ -296,5 +309,33 @@ DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
 DEBU[0000] new connection established to server          server="[name=example1, address=127.0.0.1:22122, user=mole]"
 INFO[0000] tunnel is ready                               local="127.0.0.1:3306" remote="172.17.0.2:3306"
 INFO[0000] tunnel is ready                               local="127.0.0.1:8080" remote="172.17.0.1:80"
+```
+
+### Configure the time interval to send keep alive packets
+
+```sh
+$ ./mole -v -local :8080 -remote 172.17.0.1:80 -server example1 -keep-alive-interval 2s
+DEBU[0000] cli options                                   options="[local=:8080, remote=172.17.0.1:80, server=example1, key=, verbose=true, help=false, version=false, detach=false, insecure=false, keep-alive-interval=2s, timeout=3s, connection-retries=3, retry-wait=3s]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=127.0.0.1:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8080, remote=172.17.0.1:80]], server:127.0.0.1:22122]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] connection to the ssh server is established   server="[name=example1, address=127.0.0.1:22122, user=mole]"
+DEBU[0000] start sending keep alive packets
+INFO[0000] tunnel channel is waiting for connection      local="127.0.0.1:8080" remote="172.17.0.1:80"
+```
+
+### Configure connection retries and retry wait interval
+
+```sh
+$ ./mole -v -local :8080 -remote 172.17.0.1:80 -server example1 --connection-retries 5 --retry-wait 10s
+DEBU[0000] cli options                                   options="[local=:8080, remote=172.17.0.1:80, server=example1, key=, verbose=true, help=false, version=false, detach=false, insecure=false, keep-alive-interval=2s, timeout=3s, connection-retries=5, retry-wait=10s]"
+DEBU[0000] using ssh config file from: /Users/mole/.ssh/config
+DEBU[0000] server: [name=example1, address=127.0.0.1:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[local=127.0.0.1:8080, remote=172.17.0.1:80]], server:127.0.0.1:22122]
+DEBU[0000] known_hosts file used: /Users/mole/.ssh/known_hosts
+DEBU[0000] connection to the ssh server is established   server="[name=example1, address=127.0.0.1:22122, user=mole]"
+DEBU[0000] start sending keep alive packets
+INFO[0000] tunnel channel is waiting for connection      local="127.0.0.1:8080" remote="172.17.0.1:80"
 ```
 
