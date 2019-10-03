@@ -1,0 +1,12 @@
+on: push
+name: Mole Code Quality Checks
+jobs:
+  checkCodeQuality:
+    name: Check Code Quality
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Check Code Quality
+      uses: ./.github/actions/check
+      env:
+        DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
