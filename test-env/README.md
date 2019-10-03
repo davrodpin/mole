@@ -149,6 +149,12 @@ $ curl 127.0.0.1:21112; curl 127.0.0.1:21113
 :)
 ```
 
+## How to check ssh server logs
+
+```sh
+$ docker exec mole_ssh tail -f /var/log/messages
+```
+
 ## Packet Analisys
 
 If you need to analyze the traffic going through the tunnel, the test
