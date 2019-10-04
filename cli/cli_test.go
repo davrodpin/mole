@@ -68,31 +68,56 @@ func TestCommand(t *testing.T) {
 		expected string
 	}{
 		{
-			[]string{"./mole", "-version"},
+			[]string{"./mole", "--version"},
 			"version",
 		},
 		{
-			[]string{"./mole", "-help"},
+			[]string{"./mole", "--help"},
 			"help",
 		},
 		{
-			[]string{"./mole", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--remote", ":443", "--server", "example1"},
 			"start",
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--alias", "xyz", "--remote", ":443", "--server", "example1"},
 			"new-alias",
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-delete"},
+			[]string{"./mole", "--alias", "xyz", "--delete"},
 			"rm-alias",
 		},
 		{
-			[]string{"./mole", "-aliases"},
+			[]string{"./mole", "--aliases"},
 			"aliases",
 		},
 		{
-			[]string{"./mole", "-start", "example1-alias"},
+			[]string{"./mole", "--start", "example1-alias"},
+			"start-from-alias",
+		},
+		// Short Flags
+		{
+			[]string{"./mole", "-h"},
+			"help",
+		},
+		{
+			[]string{"./mole", "-r", ":443", "-s", "example1"},
+			"start",
+		},
+		{
+			[]string{"./mole", "-a", "xyz", "-r", ":443", "-s", "example1"},
+			"new-alias",
+		},
+		{
+			[]string{"./mole", "-a", "xyz", "-d"},
+			"rm-alias",
+		},
+		{
+			[]string{"./mole", "-I"},
+			"aliases",
+		},
+		{
+			[]string{"./mole", "-S", "example1-alias"},
 			"start-from-alias",
 		},
 	}
@@ -119,35 +144,68 @@ func TestValidate(t *testing.T) {
 			false,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--alias", "xyz", "--remote", ":443", "--server", "example1"},
 			true,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-remote", ":443"},
+			[]string{"./mole", "--alias", "xyz", "--remote", ":443"},
 			false,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-server", "example1"},
+			[]string{"./mole", "--alias", "xyz", "--server", "example1"},
 			true,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz", "-remote", ":443"},
+			[]string{"./mole", "--alias", "xyz", "--remote", ":443"},
 			false,
 		},
 		{
-			[]string{"./mole", "-alias", "xyz"},
+			[]string{"./mole", "--alias", "xyz"},
 			false,
 		},
 		{
-			[]string{"./mole", "-local", ":8080", "-remote", ":80", "-server", "example1"},
+			[]string{"./mole", "--local", ":8080", "--remote", ":80", "--server", "example1"},
 			true,
 		},
 		{
-			[]string{"./mole", "-remote", ":3366", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--remote", ":3366", "--remote", ":443", "--server", "example1"},
 			true,
 		},
 		{
-			[]string{"./mole", "-local", ":1234", "-remote", ":3366", "-remote", ":443", "-server", "example1"},
+			[]string{"./mole", "--local", ":1234", "--remote", ":3366", "--remote", ":443", "--server", "example1"},
+			true,
+		},
+		// Short Flags
+		{
+			[]string{"./mole", "-a", "xyz", "-r", ":443", "-s", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "-a", "xyz", "-r", ":443"},
+			false,
+		},
+		{
+			[]string{"./mole", "-a", "xyz", "-s", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "-a", "xyz", "-r", ":443"},
+			false,
+		},
+		{
+			[]string{"./mole", "-a", "xyz"},
+			false,
+		},
+		{
+			[]string{"./mole", "-l", ":8080", "-r", ":80", "-s", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "-r", ":3366", "-r", ":443", "-s", "example1"},
+			true,
+		},
+		{
+			[]string{"./mole", "-s", ":1234", "-r", ":3366", "-r", ":443", "-s", "example1"},
 			true,
 		},
 	}
