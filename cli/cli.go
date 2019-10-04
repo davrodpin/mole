@@ -1,12 +1,13 @@
 package cli
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	flag "github.com/spf13/pflag"
 )
 
 var re = regexp.MustCompile(`(?P<user>.+@)?(?P<host>[[:alpha:][:digit:]\_\-\.]+)?(?P<port>:[0-9]+)?`)
@@ -48,24 +49,24 @@ func (c *App) Parse() error {
 	f.Usage = c.PrintUsage
 	c.flag = f
 
-	f.StringVar(&c.Alias, "alias", "", "create a tunnel alias")
-	f.BoolVar(&c.AliasDelete, "delete", false, "delete a tunnel alias (must be used with -alias)")
-	f.BoolVar(&c.AliasList, "aliases", false, "list all aliases")
-	f.StringVar(&c.Start, "start", "", "start a tunnel using a given alias")
-	f.Var(&c.Local, "local", "(optional) set local endpoint address: [<host>]:<port>. Multiple -local args can be provided")
-	f.Var(&c.Remote, "remote", "(optional) set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided")
-	f.Var(&c.Server, "server", "set server address: [<user>@]<host>[:<port>]")
-	f.StringVar(&c.Key, "key", "", "(optional) Set server authentication key file path")
-	f.BoolVar(&c.Verbose, "v", false, "(optional) Increase log verbosity")
-	f.BoolVar(&c.Help, "help", false, "list all options available")
+	f.StringVarP(&c.Alias, "alias", "a", "", "create a tunnel alias")
+	f.BoolVarP(&c.AliasDelete, "delete", "d", false, "delete a tunnel alias (must be used with -alias)")
+	f.BoolVarP(&c.AliasList, "aliases", "I", false, "list all aliases")
+	f.StringVarP(&c.Start, "start", "S", "", "start a tunnel using a given alias")
+	f.VarP(&c.Local, "local", "l", "(optional) set local endpoint address: [<host>]:<port>. Multiple -local args can be provided")
+	f.VarP(&c.Remote, "remote", "r", "(optional) set remote endpoint address: [<host>]:<port>. Multiple -remote args can be provided")
+	f.VarP(&c.Server, "server", "s", "set server address: [<user>@]<host>[:<port>]")
+	f.StringVarP(&c.Key, "key", "k", "", "(optional) Set server authentication key file path")
+	f.BoolVarP(&c.Verbose, "verbose", "v", false, "(optional) Increase log verbosity")
+	f.BoolVarP(&c.Help, "help", "h", false, "list all options available")
 	f.BoolVar(&c.Version, "version", false, "display the mole version")
-	f.BoolVar(&c.Detach, "detach", false, "(optional) run process in background")
-	f.StringVar(&c.Stop, "stop", "", "stop background process")
-	f.BoolVar(&c.Insecure, "insecure", false, "(optional) skip host key validation when connecting to ssh server")
-	f.DurationVar(&c.KeepAliveInterval, "keep-alive-interval", 10*time.Second, "(optional) time interval for keep alive packets to be sent")
-	f.DurationVar(&c.Timeout, "timeout", 3*time.Second, "(optional) ssh server connection timeout")
-	f.IntVar(&c.ConnectionRetries, "connection-retries", 3, "(optional) maximum number of connection retries to the ssh server. Provide 0 if mole should never give up or negative number to disable retries")
-	f.DurationVar(&c.WaitAndRetry, "retry-wait", 3*time.Second, "(optional) time to wait before trying to reconnect to ssh server")
+	f.BoolVarP(&c.Detach, "detach", "x", false, "(optional) run process in background")
+	f.StringVarP(&c.Stop, "stop", "o", "", "stop background process")
+	f.BoolVarP(&c.Insecure, "insecure", "i", false, "(optional) skip host key validation when connecting to ssh server")
+	f.DurationVarP(&c.KeepAliveInterval, "keep-alive-interval", "K", 10*time.Second, "(optional) time interval for keep alive packets to be sent")
+	f.DurationVarP(&c.Timeout, "timeout", "t", 3*time.Second, "(optional) ssh server connection timeout")
+	f.IntVarP(&c.ConnectionRetries, "connection-retries", "R", 3, "(optional) maximum number of connection retries to the ssh server. Provide 0 if mole should never give up or negative number to disable retries")
+	f.DurationVarP(&c.WaitAndRetry, "retry-wait", "w", 3*time.Second, "(optional) time to wait before trying to reconnect to ssh server")
 
 	f.Parse(c.args[1:])
 
@@ -164,6 +165,11 @@ func (h *AddressInput) Set(value string) error {
 	return nil
 }
 
+// Type return a string representation of AddressInput.
+func (h *AddressInput) Type() string {
+	return "AddressInput"
+}
+
 // Address returns a string representation of AddressInput to be used to perform
 // network connections.
 func (h AddressInput) Address() string {
@@ -211,6 +217,11 @@ func (il *AddressInputList) Set(value string) error {
 	*il = append(*il, i)
 
 	return nil
+}
+
+// Type return a string representation of AddressInputList.
+func (il *AddressInputList) Type() string {
+	return "AddressInputList"
 }
 
 func (il AddressInputList) List() []string {
