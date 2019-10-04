@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/crypto/ssh/agent"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -383,9 +385,21 @@ func (t *Tunnel) keepAlive() {
 }
 
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
+	var signers []ssh.Signer
+
 	signer, err := server.Key.Parse()
 	if err != nil {
 		return nil, err
+	}
+	signers = append(signers, signer)
+
+	agentAddr := os.Getenv("SSH_AUTH_SOCK")
+	if agentAddr != "" {
+		agentSigners, err := getAgentSigners(agentAddr)
+		if err != nil {
+			return nil, err
+		}
+		signers = append(signers, agentSigners...)
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
@@ -396,7 +410,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	return &ssh.ClientConfig{
 		User: server.User,
 		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
+			ssh.PublicKeys(signers...),
 		},
 		HostKeyCallback: clb,
 		Timeout:         server.Timeout,
@@ -408,6 +422,16 @@ func copyConn(writer, reader net.Conn) {
 	if err != nil {
 		log.Errorf("%v", err)
 	}
+}
+
+func getAgentSigners(addr string) ([]ssh.Signer, error) {
+	log.Debugf("ssh agent address: %s", addr)
+	conn, err := net.Dial("unix", addr)
+	if err != nil {
+		return nil, err
+	}
+	client := agent.NewClient(conn)
+	return client.Signers()
 }
 
 func knownHostsCallback(insecure bool) (ssh.HostKeyCallback, error) {
