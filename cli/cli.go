@@ -167,7 +167,7 @@ func (h *AddressInput) Set(value string) error {
 
 // Type return a string representation of AddressInput.
 func (h *AddressInput) Type() string {
-	return "AddressInput"
+	return "[<user>@][<host>]:<port>"
 }
 
 // Address returns a string representation of AddressInput to be used to perform
@@ -221,7 +221,7 @@ func (il *AddressInputList) Set(value string) error {
 
 // Type return a string representation of AddressInputList.
 func (il *AddressInputList) Type() string {
-	return "AddressInputList"
+	return "([<host>]:<port>)..."
 }
 
 func (il AddressInputList) List() []string {
