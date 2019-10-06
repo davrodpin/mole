@@ -50,7 +50,7 @@ func (c *App) Parse() error {
 	c.flag = f
 
 	f.StringVarP(&c.Alias, "alias", "a", "", "create a tunnel alias")
-	f.BoolVarP(&c.AliasDelete, "delete", "d", false, "delete a tunnel alias (must be used with -alias)")
+	f.BoolVarP(&c.AliasDelete, "delete", "d", false, "delete a tunnel alias (must be used with --alias)")
 	f.BoolVarP(&c.AliasList, "aliases", "I", false, "list all aliases")
 	f.StringVarP(&c.Start, "start", "S", "", "start a tunnel using a given alias")
 	f.VarP(&c.Local, "local", "l", "(optional) set local endpoint address: [<host>]:<port>. Multiple -local args can be provided")
