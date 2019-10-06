@@ -121,7 +121,7 @@ func (c App) Validate() error {
 // use the tool.
 func (c *App) PrintUsage() {
 	fmt.Fprintf(os.Stderr, "%s\n\n", `usage:
-	mole [--verbose|-v] [--insecure|-i] [--detach|-x] (--local|-l [<host>]:<port>)... (--remote|-r [<host>]:<port>)... --server|-s [<user>@]<host>[:<port>] [--key|-k <key_path>] [--keep-alive-interval|-K <time_interval>] [--connection-retries|-R <retries>] [--retry-wait|-w <time>]
+	mole [--verbose] [--insecure] [--detach] (--local [<host>]:<port>)... (--remote [<host>]:<port>)... --server [<user>@]<host>[:<port>] [--key <key_path>] [--keep-alive-interval <time_interval>] [--connection-retries <retries>] [--retry-wait <time>]
 	mole --alias <alias_name> [--verbose] (--local [<host>]:<port>)... (--remote [<host>]:<port>)... --server [<user>@]<host>[:<port>] [--key <key_path>] [--keep-alive-interval <time_interval>] [--connection-retries <retries>] [--retry-wait <time>]
 	mole --alias <alias_name> --delete
 	mole --start <alias_name>
