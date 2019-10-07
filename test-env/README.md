@@ -86,7 +86,7 @@ The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 ```sh
 $ make test-env
 <lots of output messages here>
-$ mole -v -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key -keep-alive-interval 2s
+$ mole --verbose --insecure --local :21112 --local :21113 --remote 192.168.33.11:80 --remote 192.168.33.11:8080 --server mole@127.0.0.1:22122 --key test-env/ssh-server/keys/key --keep-alive-interval 2s
 INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
 INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
 $ curl 127.0.0.1:21112
@@ -116,7 +116,7 @@ $ make test-env
 2. Start mole
 
 ```sh
-$ mole -v -insecure -local :21112 -local :21113 -remote 192.168.33.11:80 -remote 192.168.33.11:8080 -server mole@127.0.0.1:22122 -key test-env/ssh-server/keys/key -keep-alive-interval 2s
+$ mole --verbose --insecure --local :21112 --local :21113 --remote 192.168.33.11:80 --remote 192.168.33.11:8080 --server mole@127.0.0.1:22122 --key test-env/ssh-server/keys/key --keep-alive-interval 2s
 INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
 INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
 ```
