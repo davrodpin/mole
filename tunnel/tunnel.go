@@ -33,6 +33,8 @@ type Server struct {
 	// Insecure is a flag to indicate if the host keys should be validated.
 	Insecure bool
 	Timeout  time.Duration
+	// SSHAgent is the path to the unix socket where an ssh agent is listening
+	SSHAgent string
 }
 
 // NewServer creates a new instance of Server using $HOME/.ssh/config to
@@ -393,13 +395,14 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	}
 	signers = append(signers, signer)
 
-	agentAddr := os.Getenv("SSH_AUTH_SOCK")
-	if agentAddr != "" {
-		agentSigners, err := getAgentSigners(agentAddr)
+	if _, err := os.Stat(server.SSHAgent); err == nil {
+		agentSigners, err := getAgentSigners(server.SSHAgent)
 		if err != nil {
 			return nil, err
 		}
 		signers = append(signers, agentSigners...)
+	} else {
+		log.WithError(err).Warnf("%s cannot be read. Will not try to talk to ssh agent", server.SSHAgent)
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
