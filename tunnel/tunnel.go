@@ -38,9 +38,9 @@ type Server struct {
 }
 
 // NewServer creates a new instance of Server using $HOME/.ssh/config to
-// resolve the missing connection attributes (e.g. user, hostname, port and
-// key) required to connect to the remote server, if any.
-func NewServer(user, address, key string) (*Server, error) {
+// resolve the missing connection attributes (e.g. user, hostname, port, key
+// and ssh agent) required to connect to the remote server, if any.
+func NewServer(user, address, key, sshAgent string) (*Server, error) {
 	var host string
 	var hostname string
 	var port string
@@ -70,6 +70,7 @@ func NewServer(user, address, key string) (*Server, error) {
 	port = reconcile(port, h.Port)
 	user = reconcile(user, h.User)
 	key = reconcile(key, h.Key)
+	sshAgent = reconcile(sshAgent, h.IdentityAgent)
 
 	if host == "" {
 		return nil, fmt.Errorf(HostMissing)
@@ -101,11 +102,16 @@ func NewServer(user, address, key string) (*Server, error) {
 		return nil, fmt.Errorf("error while reading key %s: %v", key, err)
 	}
 
+	if strings.HasPrefix(sshAgent, "$") {
+		sshAgent = os.Getenv(sshAgent[1:])
+	}
+
 	return &Server{
-		Name:    host,
-		Address: fmt.Sprintf("%s:%s", hostname, port),
-		User:    user,
-		Key:     pk,
+		Name:     host,
+		Address:  fmt.Sprintf("%s:%s", hostname, port),
+		User:     user,
+		Key:      pk,
+		SSHAgent: sshAgent,
 	}, nil
 }
 
@@ -395,14 +401,16 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	}
 	signers = append(signers, signer)
 
-	if _, err := os.Stat(server.SSHAgent); err == nil {
-		agentSigners, err := getAgentSigners(server.SSHAgent)
-		if err != nil {
-			return nil, err
+	if server.SSHAgent != "" {
+		if _, err := os.Stat(server.SSHAgent); err == nil {
+			agentSigners, err := getAgentSigners(server.SSHAgent)
+			if err != nil {
+				return nil, err
+			}
+			signers = append(signers, agentSigners...)
+		} else {
+			log.WithError(err).Warnf("%s cannot be read. Will not try to talk to ssh agent", server.SSHAgent)
 		}
-		signers = append(signers, agentSigners...)
-	} else {
-		log.WithError(err).Warnf("%s cannot be read. Will not try to talk to ssh agent", server.SSHAgent)
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
