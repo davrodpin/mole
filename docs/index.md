@@ -27,6 +27,7 @@ INFO[0000] listening on local address                    local_address="127.0.0.
 * [Installation](#installation)
   * [Linux and Mac](#linux-and-mac)
   * [Homebrew](#or-if-you-prefer-install-it-through-homebrew)
+  * [MacPorts](#or-you-can-also-install-using-macports)
   * [Windows](#windows)
 * [Usage](#usage)
 * [Examples](#examples)
@@ -129,6 +130,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/davrodpin/mole/master/tools/
 
 ```sh
 brew tap davrodpin/homebrew-mole && brew install mole
+```
+
+### or you can also install using [MacPorts](https://www.macports.org/)
+
+```sh
+sudo port selfupdate && sudo port install mole
 ```
 
 ## Windows
