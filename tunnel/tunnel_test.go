@@ -95,7 +95,7 @@ func TestServerOptions(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		s, err := NewServer(test.user, test.address, test.key)
+		s, err := NewServer(test.user, test.address, test.key, "")
 		if err != nil {
 			if test.expectedError != nil {
 				if test.expectedError.Error() != err.Error() {
@@ -365,7 +365,7 @@ func prepareTunnel(remotes int, insecure bool, sshConnectionRetries int) (tun *T
 		return
 	}
 
-	srv, _ := NewServer("mole", ssh.Addr().String(), "")
+	srv, _ := NewServer("mole", ssh.Addr().String(), "", "")
 
 	srv.Insecure = insecure
 

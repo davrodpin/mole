@@ -15,7 +15,7 @@ func Example() {
 
 	// Initialize the SSH Server configuration providing all values so
 	// tunnel.NewServer will not try to lookup any value using $HOME/.ssh/config
-	server, err := tunnel.NewServer("user", "172.17.0.20:2222", "/home/user/.ssh/key")
+	server, err := tunnel.NewServer("user", "172.17.0.20:2222", "/home/user/.ssh/key", "")
 	if err != nil {
 		log.Fatalf("error processing server options: %v\n", err)
 	}

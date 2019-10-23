@@ -36,6 +36,7 @@ type App struct {
 	Timeout           time.Duration
 	ConnectionRetries int
 	WaitAndRetry      time.Duration
+	SSHAgent          string
 }
 
 // New creates a new instance of App.
@@ -67,6 +68,7 @@ func (c *App) Parse() error {
 	f.DurationVarP(&c.Timeout, "timeout", "t", 3*time.Second, "(optional) ssh server connection timeout")
 	f.IntVarP(&c.ConnectionRetries, "connection-retries", "R", 3, "(optional) maximum number of connection retries to the ssh server. Provide 0 if mole should never give up or negative number to disable retries")
 	f.DurationVarP(&c.WaitAndRetry, "retry-wait", "w", 3*time.Second, "(optional) time to wait before trying to reconnect to ssh server")
+	f.StringVarP(&c.SSHAgent, "ssh-agent", "A", "", "(optional) unix socket to communicate with an ssh agent")
 
 	f.Parse(c.args[1:])
 
@@ -121,8 +123,8 @@ func (c App) Validate() error {
 // use the tool.
 func (c *App) PrintUsage() {
 	fmt.Fprintf(os.Stderr, "%s\n\n", `usage:
-	mole [--verbose] [--insecure] [--detach] (--local [<host>]:<port>)... (--remote [<host>]:<port>)... --server [<user>@]<host>[:<port>] [--key <key_path>] [--keep-alive-interval <time_interval>] [--connection-retries <retries>] [--retry-wait <time>]
-	mole --alias <alias_name> [--verbose] (--local [<host>]:<port>)... (--remote [<host>]:<port>)... --server [<user>@]<host>[:<port>] [--key <key_path>] [--keep-alive-interval <time_interval>] [--connection-retries <retries>] [--retry-wait <time>]
+	mole [--verbose] [--insecure] [--detach] (--local [<host>]:<port>)... (--remote [<host>]:<port>)... --server [<user>@]<host>[:<port>] [--key <key_path>] [--keep-alive-interval <time_interval>] [--connection-retries <retries>] [--retry-wait <time>] [--ssh-agent <socket_path>]
+	mole --alias <alias_name> [--verbose] (--local [<host>]:<port>)... (--remote [<host>]:<port>)... --server [<user>@]<host>[:<port>] [--key <key_path>] [--keep-alive-interval <time_interval>] [--connection-retries <retries>] [--retry-wait <time>] [--ssh-agent <socket_path>]
 	mole --alias <alias_name> --delete
 	mole --start <alias_name>
 	mole --help
@@ -132,8 +134,8 @@ func (c *App) PrintUsage() {
 
 // String returns a string representation of an App.
 func (c App) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, keep-alive-interval=%v, timeout=%v, connection-retries=%d, retry-wait=%s]",
-		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach, c.Insecure, c.KeepAliveInterval, c.Timeout, c.ConnectionRetries, c.WaitAndRetry)
+	return fmt.Sprintf("[local=%s, remote=%s, server=%s, key=%s, verbose=%t, help=%t, version=%t, detach=%t, insecure=%t, keep-alive-interval=%v, timeout=%v, connection-retries=%d, retry-wait=%s, ssh-agent=%s]",
+		c.Local, c.Remote, c.Server, c.Key, c.Verbose, c.Help, c.Version, c.Detach, c.Insecure, c.KeepAliveInterval, c.Timeout, c.ConnectionRetries, c.WaitAndRetry, c.SSHAgent)
 }
 
 // AddressInput holds information about a host

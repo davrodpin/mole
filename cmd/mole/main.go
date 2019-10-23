@@ -233,7 +233,7 @@ func start(app *cli.App) error {
 		"options": app.String(),
 	}).Debug("cli options")
 
-	s, err := tunnel.NewServer(app.Server.User, app.Server.Address(), app.Key)
+	s, err := tunnel.NewServer(app.Server.User, app.Server.Address(), app.Key, app.SSHAgent)
 	if err != nil {
 		log.Errorf("error processing server options: %v\n", err)
 

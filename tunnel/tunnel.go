@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/crypto/ssh/agent"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -31,12 +33,14 @@ type Server struct {
 	// Insecure is a flag to indicate if the host keys should be validated.
 	Insecure bool
 	Timeout  time.Duration
+	// SSHAgent is the path to the unix socket where an ssh agent is listening
+	SSHAgent string
 }
 
 // NewServer creates a new instance of Server using $HOME/.ssh/config to
-// resolve the missing connection attributes (e.g. user, hostname, port and
-// key) required to connect to the remote server, if any.
-func NewServer(user, address, key string) (*Server, error) {
+// resolve the missing connection attributes (e.g. user, hostname, port, key
+// and ssh agent) required to connect to the remote server, if any.
+func NewServer(user, address, key, sshAgent string) (*Server, error) {
 	var host string
 	var hostname string
 	var port string
@@ -66,6 +70,7 @@ func NewServer(user, address, key string) (*Server, error) {
 	port = reconcile(port, h.Port)
 	user = reconcile(user, h.User)
 	key = reconcile(key, h.Key)
+	sshAgent = reconcile(sshAgent, h.IdentityAgent)
 
 	if host == "" {
 		return nil, fmt.Errorf(HostMissing)
@@ -97,11 +102,16 @@ func NewServer(user, address, key string) (*Server, error) {
 		return nil, fmt.Errorf("error while reading key %s: %v", key, err)
 	}
 
+	if strings.HasPrefix(sshAgent, "$") {
+		sshAgent = os.Getenv(sshAgent[1:])
+	}
+
 	return &Server{
-		Name:    host,
-		Address: fmt.Sprintf("%s:%s", hostname, port),
-		User:    user,
-		Key:     pk,
+		Name:     host,
+		Address:  fmt.Sprintf("%s:%s", hostname, port),
+		User:     user,
+		Key:      pk,
+		SSHAgent: sshAgent,
 	}, nil
 }
 
@@ -383,9 +393,24 @@ func (t *Tunnel) keepAlive() {
 }
 
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
+	var signers []ssh.Signer
+
 	signer, err := server.Key.Parse()
 	if err != nil {
 		return nil, err
+	}
+	signers = append(signers, signer)
+
+	if server.SSHAgent != "" {
+		if _, err := os.Stat(server.SSHAgent); err == nil {
+			agentSigners, err := getAgentSigners(server.SSHAgent)
+			if err != nil {
+				return nil, err
+			}
+			signers = append(signers, agentSigners...)
+		} else {
+			log.WithError(err).Warnf("%s cannot be read. Will not try to talk to ssh agent", server.SSHAgent)
+		}
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
@@ -396,7 +421,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	return &ssh.ClientConfig{
 		User: server.User,
 		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
+			ssh.PublicKeys(signers...),
 		},
 		HostKeyCallback: clb,
 		Timeout:         server.Timeout,
@@ -408,6 +433,16 @@ func copyConn(writer, reader net.Conn) {
 	if err != nil {
 		log.Errorf("%v", err)
 	}
+}
+
+func getAgentSigners(addr string) ([]ssh.Signer, error) {
+	log.Debugf("ssh agent address: %s", addr)
+	conn, err := net.Dial("unix", addr)
+	if err != nil {
+		return nil, err
+	}
+	client := agent.NewClient(conn)
+	return client.Signers()
 }
 
 func knownHostsCallback(insecure bool) (ssh.HostKeyCallback, error) {
