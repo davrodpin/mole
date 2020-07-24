@@ -444,7 +444,7 @@ func prepareTestEnv() {
 }
 
 // get performs a http request using the given client appending the given
-// resource to to a hard-coded URL.
+// resource to a hard-coded URL.
 //
 // The request performed by this function is designed to reach the other side
 // through a pipe (net.Pipe()) and this is the reason the URL is hard-coded.

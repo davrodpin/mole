@@ -1,5 +1,6 @@
 /bin/
 /coverage.txt
+/coverage.html
 
 /test-env/key
 /test-env/key.pub
@@ -9,5 +10,3 @@
 *.swp
 *~
 *.un~
-
-/mole

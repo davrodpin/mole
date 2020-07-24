@@ -1,6 +1,6 @@
-.PHONY: test cover build bin test-env rm-test-env site
+.PHONY: test cover build bin test-env rm-test-env site install
 
-LDFLAGS := -X main.version=$(version)
+LDFLAGS := -X github.com/davrodpin/mole/cmd.version=$(version)
 
 test:
 ifneq ($(shell go fmt ./...),)
@@ -8,24 +8,29 @@ ifneq ($(shell go fmt ./...),)
 endif
 	@go test github.com/davrodpin/mole/... -v -race -coverprofile=coverage.txt -covermode=atomic
 cover: test
-	go tool cover -html=coverage.txt
+	go tool cover -html=coverage.txt -o coverage.html
+
+lint:
+	@golangci-lint run
 
 build:
-	@go build github.com/davrodpin/mole/cmd/mole
+	@go build -o bin/mole github.com/davrodpin/mole
+install:
+	@cp bin/mole /usr/local/bin/
 
 bin:
 ifeq ($(version),)
 	$(error usage: make bin version=X.Y.Z)
 endif
-	GOOS=darwin GOARCH=amd64 go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole/cmd/mole
+	GOOS=darwin GOARCH=amd64 go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole
 	cd bin && tar c mole | gzip > mole$(version).darwin-amd64.tar.gz && rm mole && cd -
-	GOOS=linux GOARCH=amd64 go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole/cmd/mole
+	GOOS=linux GOARCH=amd64 go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole
 	cd bin && tar c mole | gzip > mole$(version).linux-amd64.tar.gz && rm mole && cd -
-	GOOS=linux GOARCH=arm go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole/cmd/mole
+	GOOS=linux GOARCH=arm go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole
 	cd bin && tar c mole | gzip > mole$(version).linux-arm.tar.gz && rm mole && cd -
-	GOOS=linux GOARCH=arm64 go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole/cmd/mole
+	GOOS=linux GOARCH=arm64 go build -o bin/mole -ldflags "$(LDFLAGS)" github.com/davrodpin/mole
 	cd bin && tar c mole | gzip > mole$(version).linux-arm64.tar.gz && rm mole && cd -
-	GOOS=windows GOARCH=amd64 go build -o bin/mole.exe -ldflags "$(LDFLAGS)" github.com/davrodpin/mole/cmd/mole
+	GOOS=windows GOARCH=amd64 go build -o bin/mole.exe -ldflags "$(LDFLAGS)" github.com/davrodpin/mole
 	cd bin && zip mole$(version).windows-amd64.zip mole.exe && rm -f mole.exe && cd -
 
 add-network:
