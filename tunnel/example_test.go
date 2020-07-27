@@ -20,7 +20,7 @@ func Example() {
 		log.Fatalf("error processing server options: %v\n", err)
 	}
 
-	t, err := tunnel.New(server, []*tunnel.SSHChannel{sshChan})
+	t, err := tunnel.New("local", server, []*tunnel.SSHChannel{sshChan})
 	if err != nil {
 		log.Fatalf("error creating tunnel: %v\n", err)
 	}

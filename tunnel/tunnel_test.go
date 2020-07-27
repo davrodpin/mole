@@ -380,7 +380,7 @@ func prepareTunnel(remotes int, insecure bool, sshConnectionRetries int) (tun *T
 		hss = append(hss, hs)
 	}
 
-	tun, _ = New(srv, sshChannels)
+	tun, _ = New("local", srv, sshChannels)
 	tun.ConnectionRetries = sshConnectionRetries
 	tun.WaitAndRetry = 3 * time.Second
 	tun.KeepAliveInterval = 10 * time.Second

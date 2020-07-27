@@ -34,6 +34,7 @@ const (
 // TunnelFlags is a struct that holds all flags required to establish a ssh
 // port forwarding tunnel.
 type TunnelFlags struct {
+	TunnelType        string
 	Verbose           bool
 	Insecure          bool
 	Detach            bool
@@ -49,10 +50,10 @@ type TunnelFlags struct {
 }
 
 // ParseAlias translates a TunnelFlags object to an Alias object
-func (tf TunnelFlags) ParseAlias(name, tunnelType string) *Alias {
+func (tf TunnelFlags) ParseAlias(name string) *Alias {
 	return &Alias{
 		Name:              name,
-		TunnelType:        tunnelType,
+		TunnelType:        tf.TunnelType,
 		Verbose:           tf.Verbose,
 		Insecure:          tf.Insecure,
 		Detach:            tf.Detach,
@@ -109,6 +110,7 @@ func (a Alias) ParseTunnelFlags() (*TunnelFlags, error) {
 
 	tf := &TunnelFlags{}
 
+	tf.TunnelType = a.TunnelType
 	tf.Verbose = a.Verbose
 	tf.Insecure = a.Insecure
 	tf.Detach = a.Detach

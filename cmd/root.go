@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	tunnelType  string
 	aliasName   string
 	tunnelFlags = &alias.TunnelFlags{}
 
@@ -114,31 +113,29 @@ func start(alias string, tunnelFlags *alias.TunnelFlags) {
 
 	log.Debugf("server: %s", s)
 
-	// TODO: rename local to source
-	local := make([]string, len(tunnelFlags.Source))
+	source := make([]string, len(tunnelFlags.Source))
 	for i, r := range tunnelFlags.Source {
-		local[i] = r.String()
+		source[i] = r.String()
 	}
 
-	// TODO: rename remote to destination
-	remote := make([]string, len(tunnelFlags.Destination))
+	destination := make([]string, len(tunnelFlags.Destination))
 	for i, r := range tunnelFlags.Destination {
 		if r.Port == "" {
-			err := fmt.Errorf("missing port in remote address: %s", r.String())
+			err := fmt.Errorf("missing port in destination address: %s", r.String())
 			log.Error(err)
 			os.Exit(1)
 		}
 
-		remote[i] = r.String()
+		destination[i] = r.String()
 	}
 
-	channels, err := tunnel.BuildSSHChannels(s.Name, local, remote)
+	channels, err := tunnel.BuildSSHChannels(s.Name, source, destination)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 
-	t, err := tunnel.New(s, channels)
+	t, err := tunnel.New(tunnelFlags.TunnelType, s, channels)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)

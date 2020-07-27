@@ -17,6 +17,7 @@ import (
 func TestParseTunnelFlags(t *testing.T) {
 
 	tests := []struct {
+		tunnelType        string
 		verbose           bool
 		insecure          bool
 		detach            bool
@@ -31,6 +32,7 @@ func TestParseTunnelFlags(t *testing.T) {
 		timeout           string
 	}{
 		{
+			"local",
 			true,
 			true,
 			true,
@@ -45,6 +47,7 @@ func TestParseTunnelFlags(t *testing.T) {
 			"1m0s",
 		},
 		{
+			"local",
 			true,
 			false,
 			true,
@@ -62,6 +65,7 @@ func TestParseTunnelFlags(t *testing.T) {
 
 	for id, test := range tests {
 		ai := &alias.Alias{
+			TunnelType:        test.tunnelType,
 			Verbose:           test.verbose,
 			Insecure:          test.insecure,
 			Detach:            test.detach,
@@ -81,58 +85,62 @@ func TestParseTunnelFlags(t *testing.T) {
 			t.Errorf("%v\n", err)
 		}
 
+		if test.tunnelType != tf.TunnelType {
+			t.Errorf("tunnelType doesn't match on test %d: expected: %s, value: %s", id, test.tunnelType, tf.TunnelType)
+		}
+
 		if test.verbose != tf.Verbose {
-			t.Errorf("verbose doesn't match for test %d: expected: %t, value: %t", id, test.verbose, tf.Verbose)
+			t.Errorf("verbose doesn't match on test %d: expected: %t, value: %t", id, test.verbose, tf.Verbose)
 		}
 
 		if test.insecure != tf.Insecure {
-			t.Errorf("insecure doesn't match for test %d: expected: %t, value: %t", id, test.insecure, tf.Insecure)
+			t.Errorf("insecure doesn't match on test %d: expected: %t, value: %t", id, test.insecure, tf.Insecure)
 		}
 
 		if test.detach != tf.Detach {
-			t.Errorf("detach doesn't match for test %d: expected: %t, value: %t", id, test.detach, tf.Detach)
+			t.Errorf("detach doesn't match on test %d: expected: %t, value: %t", id, test.detach, tf.Detach)
 		}
 
 		for i, tsrc := range test.source {
 			src := tf.Source[i].String()
 			if tsrc != src {
-				t.Errorf("source %d doesn't match for test %d: expected: %s, value: %s", id, i, tsrc, src)
+				t.Errorf("source %d doesn't match on test %d: expected: %s, value: %s", id, i, tsrc, src)
 			}
 		}
 
 		for i, tdst := range test.destination {
 			dst := tf.Destination[i].String()
 			if tdst != dst {
-				t.Errorf("destination %d doesn't match for test %d: expected: %s, value: %s", id, i, tdst, dst)
+				t.Errorf("destination %d doesn't match on test %d: expected: %s, value: %s", id, i, tdst, dst)
 			}
 		}
 
 		if test.server != tf.Server.String() {
-			t.Errorf("server doesn't match for test %d: expected: %s, value: %s", id, test.server, tf.Server.String())
+			t.Errorf("server doesn't match on test %d: expected: %s, value: %s", id, test.server, tf.Server.String())
 		}
 
 		if test.key != tf.Key {
-			t.Errorf("key doesn't match for test %d: expected: %s, value: %s", id, test.key, tf.Key)
+			t.Errorf("key doesn't match on test %d: expected: %s, value: %s", id, test.key, tf.Key)
 		}
 
 		if test.keepAliveInterval != tf.KeepAliveInterval.String() {
-			t.Errorf("keepAliveInterval doesn't match for test %d: expected: %s, value: %s", id, test.keepAliveInterval, tf.KeepAliveInterval.String())
+			t.Errorf("keepAliveInterval doesn't match on test %d: expected: %s, value: %s", id, test.keepAliveInterval, tf.KeepAliveInterval.String())
 		}
 
 		if test.connectionRetries != tf.ConnectionRetries {
-			t.Errorf("connectionRetries doesn't match for test %d: expected: %d, value: %d", id, test.connectionRetries, tf.ConnectionRetries)
+			t.Errorf("connectionRetries doesn't match on test %d: expected: %d, value: %d", id, test.connectionRetries, tf.ConnectionRetries)
 		}
 
 		if test.waitAndRetry != tf.WaitAndRetry.String() {
-			t.Errorf("waitAndRetry doesn't match for test %d: expected: %s, value: %s", id, test.waitAndRetry, tf.WaitAndRetry.String())
+			t.Errorf("waitAndRetry doesn't match on test %d: expected: %s, value: %s", id, test.waitAndRetry, tf.WaitAndRetry.String())
 		}
 
 		if test.sshAgent != tf.SshAgent {
-			t.Errorf("sshAgent doesn't match for test %d: expected: %s, value: %s", id, test.sshAgent, tf.SshAgent)
+			t.Errorf("sshAgent doesn't match on test %d: expected: %s, value: %s", id, test.sshAgent, tf.SshAgent)
 		}
 
 		if test.timeout != tf.Timeout.String() {
-			t.Errorf("timeout doesn't match for test %d: expected: %s, value: %s", id, test.timeout, tf.Timeout.String())
+			t.Errorf("timeout doesn't match on test %d: expected: %s, value: %s", id, test.timeout, tf.Timeout.String())
 		}
 
 	}

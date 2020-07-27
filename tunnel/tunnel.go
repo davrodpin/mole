@@ -134,6 +134,9 @@ func (ch SSHChannel) String() string {
 // Tunnel represents the ssh tunnel and the channels connecting local and
 // remote endpoints.
 type Tunnel struct {
+	// Type tells what kind of port forwarding this tunnel will handle: local or remote
+	Type string
+
 	// Ready tells when the Tunnel is ready to accept connections
 	Ready chan bool
 
@@ -158,7 +161,7 @@ type Tunnel struct {
 }
 
 // New creates a new instance of Tunnel.
-func New(server *Server, channels []*SSHChannel) (*Tunnel, error) {
+func New(tunnelType string, server *Server, channels []*SSHChannel) (*Tunnel, error) {
 
 	for _, channel := range channels {
 		if channel.Local == "" || channel.Remote == "" {
@@ -167,6 +170,7 @@ func New(server *Server, channels []*SSHChannel) (*Tunnel, error) {
 	}
 
 	return &Tunnel{
+		Type:          tunnelType,
 		Ready:         make(chan bool, 1),
 		channels:      channels,
 		server:        server,
@@ -224,7 +228,7 @@ func (t *Tunnel) Listen() error {
 	return nil
 }
 
-func (t *Tunnel) startChannel(channel *SSHChannel) error {
+func (t *Tunnel) startLocalChannel(channel *SSHChannel) error {
 	var err error
 
 	channel.conn, err = channel.listener.Accept()
@@ -362,7 +366,7 @@ func (t *Tunnel) connect() {
 					waitgroup.Done()
 				})
 
-				err = t.startChannel(channel)
+				err = t.startLocalChannel(channel)
 				if err != nil {
 					t.done <- err
 					return
