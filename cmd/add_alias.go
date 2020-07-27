@@ -26,13 +26,13 @@ The alias configuration file is saved to ".mole", under your home directory.
 			return errors.New("alias name not provided")
 		}
 
-		tunnelType = args[0]
+		tunnelFlags.TunnelType = args[0]
 		aliasName = args[1]
 
 		return nil
 	},
 	Run: func(cmd *cobra.Command, arg []string) {
-		if err := alias.Add(tunnelFlags.ParseAlias(aliasName, "local")); err != nil {
+		if err := alias.Add(tunnelFlags.ParseAlias(aliasName)); err != nil {
 			log.WithError(err).Error("failed to add tunnel alias")
 			os.Exit(1)
 		}

@@ -5,7 +5,8 @@ RUN apk update && apk add \
       libcap \
       openssh \
       tcpdump \
-      supervisor
+      supervisor \
+      curl
 
 COPY sshd_config /etc/ssh/sshd_config
 COPY motd /etc/motd
