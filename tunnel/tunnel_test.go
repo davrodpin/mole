@@ -254,64 +254,64 @@ func TestMain(m *testing.M) {
 func TestBuildSSHChannels(t *testing.T) {
 	tests := []struct {
 		serverName    string
-		local         []string
-		remote        []string
+		source        []string
+		destination   []string
 		expected      int
 		expectedError error
 	}{
 		{
 			serverName:    "test",
-			local:         []string{":3360"},
-			remote:        []string{":3360"},
+			source:        []string{":3360"},
+			destination:   []string{":3360"},
 			expected:      1,
 			expectedError: nil,
 		},
 		{
 			serverName:    "test",
-			local:         []string{":3360", ":8080"},
-			remote:        []string{":3360", ":8080"},
+			source:        []string{":3360", ":8080"},
+			destination:   []string{":3360", ":8080"},
 			expected:      2,
 			expectedError: nil,
 		},
 		{
 			serverName:    "test",
-			local:         []string{},
-			remote:        []string{":3360"},
+			source:        []string{},
+			destination:   []string{":3360"},
 			expected:      1,
 			expectedError: nil,
 		},
 		{
 			serverName:    "test",
-			local:         []string{":3360"},
-			remote:        []string{":3360", ":8080"},
+			source:        []string{":3360"},
+			destination:   []string{":3360", ":8080"},
 			expected:      2,
 			expectedError: nil,
 		},
 		{
 			serverName:    "hostWithLocalForward",
-			local:         []string{},
-			remote:        []string{},
+			source:        []string{},
+			destination:   []string{},
 			expected:      1,
 			expectedError: nil,
 		},
 		{
 			serverName:    "test",
-			local:         []string{":3360", ":8080"},
-			remote:        []string{":3360"},
+			source:        []string{":3360", ":8080"},
+			destination:   []string{":3360"},
 			expected:      1,
 			expectedError: nil,
 		},
 		{
 			serverName:    "test",
-			local:         []string{":3360"},
-			remote:        []string{},
+			source:        []string{":3360"},
+			destination:   []string{},
 			expected:      0,
 			expectedError: fmt.Errorf(NoRemoteGiven),
 		},
 	}
 
 	for testId, test := range tests {
-		sshChannels, err := BuildSSHChannels(test.serverName, test.local, test.remote)
+		sshChannels, err := buildSSHChannels(test.serverName, "local", test.source, test.destination)
 		if err != nil {
 			if test.expectedError != nil {
 				if test.expectedError.Error() != err.Error() {
@@ -326,23 +326,23 @@ func TestBuildSSHChannels(t *testing.T) {
 			t.Errorf("wrong number of ssh channel objects created for test %d: expected: %d, value: %d", testId, test.expected, len(sshChannels))
 		}
 
-		localSize := len(test.local)
-		remoteSize := len(test.remote)
+		sourceSize := len(test.source)
+		destinationSize := len(test.destination)
 
-		// check if the local addresses match only if any address is given
-		if localSize > 0 && remoteSize > 0 {
+		// check if the source addresses match only if any address is given
+		if sourceSize > 0 && destinationSize > 0 {
 			for i, sshChannel := range sshChannels {
-				local := ""
-				if i < localSize {
-					local = test.local[i]
+				source := ""
+				if i < sourceSize {
+					source = test.source[i]
 				} else {
-					local = RandomPortAddress
+					source = RandomPortAddress
 				}
 
-				local = expandAddress(local)
+				source = expandAddress(source)
 
-				if sshChannel.Local != local {
-					t.Errorf("local address don't match for test %d: expected: %s, value: %s", testId, sshChannel.Local, local)
+				if sshChannel.Source != source {
+					t.Errorf("source address don't match for test %d: expected: %s, value: %s", testId, sshChannel.Source, source)
 				}
 
 			}
@@ -373,14 +373,17 @@ func prepareTunnel(remotes int, insecure bool, sshConnectionRetries int) (tun *T
 		generateKnownHosts(ssh.Addr().String(), publicKeyPath, knownHostsPath)
 	}
 
-	sshChannels := []*SSHChannel{}
-	for i := 1; i <= remotes; i++ {
+	source := make([]string, remotes)
+	destination := make([]string, remotes)
+
+	for i := 0; i <= (remotes - 1); i++ {
 		l, hs := createHttpServer()
-		sshChannels = append(sshChannels, &SSHChannel{Local: "127.0.0.1:0", Remote: l.Addr().String()})
+		source[i] = "127.0.0.1:0"
+		destination[i] = l.Addr().String()
 		hss = append(hss, hs)
 	}
 
-	tun, _ = New("local", srv, sshChannels)
+	tun, _ = New("local", srv, source, destination)
 	tun.ConnectionRetries = sshConnectionRetries
 	tun.WaitAndRetry = 3 * time.Second
 	tun.KeepAliveInterval = 10 * time.Second

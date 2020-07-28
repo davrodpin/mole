@@ -62,9 +62,14 @@ func (r SSHConfigFile) Get(host string) *SSHHost {
 		user = ""
 	}
 
-	localForward, err := r.getLocalForward(host)
+	localForward, err := r.getForward("LocalForward", host)
 	if err != nil {
-		log.Warningf("error reading LocalForward configuration from ssh config file: %v", err)
+		log.Warningf("error reading local forwarding configuration from ssh config file: %v", err)
+	}
+
+	remoteForward, err := r.getForward("RemoteForward", host)
+	if err != nil {
+		log.Warningf("error reading remote configuration from ssh config file: %v", err)
 	}
 
 	key := r.getKey(host)
@@ -81,6 +86,7 @@ func (r SSHConfigFile) Get(host string) *SSHHost {
 		Key:           key,
 		IdentityAgent: identityAgent,
 		LocalForward:  localForward,
+		RemoteForward: remoteForward,
 	}
 }
 
@@ -93,10 +99,8 @@ func (r SSHConfigFile) getHostname(host string) string {
 	return hostname
 }
 
-func (r SSHConfigFile) getLocalForward(host string) (*LocalForward, error) {
-	var local, remote string
-
-	c, err := r.sshConfig.Get(host, "LocalForward")
+func (r SSHConfigFile) getForward(forwardType, host string) (*ForwardConfig, error) {
+	c, err := r.sshConfig.Get(host, forwardType)
 	if err != nil {
 		return nil, err
 	}
@@ -108,21 +112,21 @@ func (r SSHConfigFile) getLocalForward(host string) (*LocalForward, error) {
 	l := strings.Fields(c)
 
 	if len(l) < 2 {
-		return nil, fmt.Errorf("bad forwarding specification on ssh config file: %s", l)
+		return nil, fmt.Errorf("malformed forwarding configuration on ssh config file: %s", l)
 	}
 
-	local = l[0]
-	remote = l[1]
+	source := l[0]
+	destination := l[1]
 
-	if strings.HasPrefix(local, ":") {
-		local = fmt.Sprintf("127.0.0.1%s", local)
+	if strings.HasPrefix(source, ":") {
+		source = fmt.Sprintf("127.0.0.1%s", source)
 	}
 
-	if local != "" && !strings.Contains(local, ":") {
-		local = fmt.Sprintf("127.0.0.1:%s", local)
+	if source != "" && !strings.Contains(source, ":") {
+		source = fmt.Sprintf("127.0.0.1:%s", source)
 	}
 
-	return &LocalForward{Local: local, Remote: remote}, nil
+	return &ForwardConfig{Source: source, Destination: destination}, nil
 
 }
 
@@ -151,21 +155,23 @@ type SSHHost struct {
 	User          string
 	Key           string
 	IdentityAgent string
-	LocalForward  *LocalForward
+	LocalForward  *ForwardConfig
+	RemoteForward *ForwardConfig
 }
 
 // String returns a string representation of a SSHHost.
 func (h SSHHost) String() string {
-	return fmt.Sprintf("[hostname=%s, port=%s, user=%s, key=%s, identity_agent=%s, local_forward=%s]", h.Hostname, h.Port, h.User, h.Key, h.IdentityAgent, h.LocalForward)
+	return fmt.Sprintf("[hostname=%s, port=%s, user=%s, key=%s, identity_agent=%s, local_forward=%s, remote_forward=%s]", h.Hostname, h.Port, h.User, h.Key, h.IdentityAgent, h.LocalForward, h.RemoteForward)
 }
 
-// LocalForward represents a LocalForward configuration for SSHHost.
-type LocalForward struct {
-	Local  string
-	Remote string
+// ForwardConfig represents either a LocalForward or a RemoteForward configuration
+// for SSHHost.
+type ForwardConfig struct {
+	Source      string
+	Destination string
 }
 
-// String returns a string representation of LocalForward.
-func (f LocalForward) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s]", f.Local, f.Remote)
+// String returns a string representation of ForwardConfig.
+func (f ForwardConfig) String() string {
+	return fmt.Sprintf("[source=%s, destination=%s]", f.Source, f.Destination)
 }

@@ -20,6 +20,11 @@ Host example2
 	LocalForward 8080 127.0.0.1:8080
 Host example3
 	LocalForward 9090 127.0.0.1:9090
+Host example4
+	RemoteForward 80 127.0.0.1:8080
+Host example5
+	RemoteForward 192.168.1.100:80 my-server:8080
+
 `
 
 	c, _ := ssh_config.Decode(strings.NewReader(config))
@@ -46,7 +51,7 @@ Host example3
 				Port:         "",
 				User:         "",
 				Key:          "",
-				LocalForward: &LocalForward{Local: "127.0.0.1:8080", Remote: "127.0.0.1:8080"},
+				LocalForward: &ForwardConfig{Source: "127.0.0.1:8080", Destination: "127.0.0.1:8080"},
 			},
 		},
 		{
@@ -56,7 +61,27 @@ Host example3
 				Port:         "",
 				User:         "",
 				Key:          "",
-				LocalForward: &LocalForward{Local: "127.0.0.1:9090", Remote: "127.0.0.1:9090"},
+				LocalForward: &ForwardConfig{Source: "127.0.0.1:9090", Destination: "127.0.0.1:9090"},
+			},
+		},
+		{
+			"example4",
+			&SSHHost{
+				Hostname:      "",
+				Port:          "",
+				User:          "",
+				Key:           "",
+				RemoteForward: &ForwardConfig{Source: "127.0.0.1:80", Destination: "127.0.0.1:8080"},
+			},
+		},
+		{
+			"example5",
+			&SSHHost{
+				Hostname:      "",
+				Port:          "",
+				User:          "",
+				Key:           "",
+				RemoteForward: &ForwardConfig{Source: "192.168.1.100:80", Destination: "my-server:8080"},
 			},
 		},
 	}

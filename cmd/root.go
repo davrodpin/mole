@@ -129,13 +129,7 @@ func start(alias string, tunnelFlags *alias.TunnelFlags) {
 		destination[i] = r.String()
 	}
 
-	channels, err := tunnel.BuildSSHChannels(s.Name, source, destination)
-	if err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
-
-	t, err := tunnel.New(tunnelFlags.TunnelType, s, channels)
+	t, err := tunnel.New(tunnelFlags.TunnelType, s, source, destination)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
