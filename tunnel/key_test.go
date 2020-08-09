@@ -5,10 +5,6 @@ import (
 	"testing"
 )
 
-func passwordHandler(password string) func() ([]byte, error) {
-	return func() ([]byte, error) { return []byte(password), nil }
-}
-
 func TestPemKey(t *testing.T) {
 	tests := []struct {
 		keyPath    string

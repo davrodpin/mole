@@ -86,13 +86,23 @@ The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 ```sh
 $ make test-env
 <lots of output messages here>
-$ mole --verbose --insecure --local :21112 --local :21113 --remote 192.168.33.11:80 --remote 192.168.33.11:8080 --server mole@127.0.0.1:22122 --key test-env/ssh-server/keys/key --keep-alive-interval 2s
-INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
-INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
-$ curl 127.0.0.1:21112
-:)
-$ curl 127.0.0.1:21113
-:)
+mole start local \
+  --verbose \
+  --insecure \
+  --source :21112 \
+  --source :21113 \
+  --destination 192.168.33.11:80 \
+  --destination 192.168.33.11:8080 \
+  --server mole@127.0.0.1:22122 \
+  --key test-env/ssh-server/keys/key \
+  --keep-alive-interval 2s
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=127.0.0.1, address=127.0.0.1:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[source=127.0.0.1:21112, destination=192.168.33.11:80] [source=127.0.0.1:21113, destination=192.168.33.11:8080]], server:127.0.0.1:22122]
+DEBU[0000] connection to the ssh server is established   server="[name=127.0.0.1, address=127.0.0.1:22122, user=mole]"
+DEBU[0000] start sending keep alive packets
+INFO[0000] tunnel channel is waiting for connection      destination="192.168.33.11:8080" source="127.0.0.1:21113"
+INFO[0000] tunnel channel is waiting for connection      destination="192.168.33.11:80" source="127.0.0.1:21112"
 ```
 
 NOTE: If you're wondering about the smile face, that is the response from both 
@@ -116,9 +126,23 @@ $ make test-env
 2. Start mole
 
 ```sh
-$ mole --verbose --insecure --local :21112 --local :21113 --remote 192.168.33.11:80 --remote 192.168.33.11:8080 --server mole@127.0.0.1:22122 --key test-env/ssh-server/keys/key --keep-alive-interval 2s
-INFO[0000] tunnel is ready                               local="127.0.0.1:21113" remote="192.168.33.11:8080"
-INFO[0000] tunnel is ready                               local="127.0.0.1:21112" remote="192.168.33.11:80"
+mole start local \
+  --verbose \
+  --insecure \
+  --source :21112 \
+  --source :21113 \
+  --destination 192.168.33.11:80 \
+  --destination 192.168.33.11:8080 \
+  --server mole@127.0.0.1:22122 \
+  --key test-env/ssh-server/keys/key \
+  --keep-alive-interval 2s
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=127.0.0.1, address=127.0.0.1:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[source=127.0.0.1:21112, destination=192.168.33.11:80] [source=127.0.0.1:21113, destination=192.168.33.11:8080]], server:127.0.0.1:22122]
+DEBU[0000] connection to the ssh server is established   server="[name=127.0.0.1, address=127.0.0.1:22122, user=mole]"
+DEBU[0000] start sending keep alive packets
+INFO[0000] tunnel channel is waiting for connection      destination="192.168.33.11:8080" source="127.0.0.1:21113"
+INFO[0000] tunnel channel is waiting for connection      destination="192.168.33.11:80" source="127.0.0.1:21112"
 ```
 
 3. Kill all ssh processes running on the container holding the ssh server

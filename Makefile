@@ -48,6 +48,7 @@ mole-http: rm-mole-http
 		--detach \
 		--network mole \
 		--ip 192.168.33.11 \
+		--publish 8080:8080 \
 		--name mole_http mole_http:latest
 
 rm-mole-ssh:
