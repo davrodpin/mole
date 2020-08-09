@@ -6,12 +6,13 @@ import (
 	"github.com/davrodpin/mole/tunnel"
 )
 
-// This example shows the basic usage of the package: define both the local and
-// remote endpoints, the ssh server and then start the tunnel that will
+// This example shows the basic usage of the package: define both the source and
+// destination endpoints, the ssh server and then start the tunnel that will
 // exchange data from the local address to the remote address through the
 // established ssh channel.
 func Example() {
-	sshChan := &tunnel.SSHChannel{Local: "127.0.0.1:8080", Remote: "user@example.com:22"}
+	sourceEndpoints := []string{"127.0.0.1:8080"}
+	destinationEndpoints := []string{"user@example.com:80"}
 
 	// Initialize the SSH Server configuration providing all values so
 	// tunnel.NewServer will not try to lookup any value using $HOME/.ssh/config
@@ -20,7 +21,7 @@ func Example() {
 		log.Fatalf("error processing server options: %v\n", err)
 	}
 
-	t, err := tunnel.New(server, []*tunnel.SSHChannel{sshChan})
+	t, err := tunnel.New("local", server, sourceEndpoints, destinationEndpoints)
 	if err != nil {
 		log.Fatalf("error creating tunnel: %v\n", err)
 	}

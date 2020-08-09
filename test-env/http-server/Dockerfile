@@ -7,4 +7,6 @@ RUN mkdir -p /data/www
 COPY default.conf /etc/nginx/conf.d/
 COPY index.html /data/www
 
+EXPOSE 8080
+
 CMD nginx -g 'daemon off;'

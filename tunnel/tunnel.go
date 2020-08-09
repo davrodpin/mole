@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	HostMissing       = "server host has to be provided as part of the server address"
-	RandomPortAddress = "127.0.0.1:0"
-	NoRemoteGiven     = "cannot create a tunnel without at least one remote address"
+	HostMissing        = "server host has to be provided as part of the server address"
+	RandomPortAddress  = "127.0.0.1:0"
+	NoDestinationGiven = "cannot create a tunnel without at least one remote address"
 )
 
 // Server holds the SSH Server attributes used for the client to connect to it.
@@ -54,13 +54,12 @@ func NewServer(user, address, key, sshAgent string) (*Server, error) {
 
 	c, err := NewSSHConfigFile()
 	if err != nil {
-		// Ignore file doesnt exists
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, fmt.Errorf("error accessing %s: %v", host, err)
 		}
 	}
 
-	// // If ssh config file doesnt exists, create an empty ssh config struct to avoid nil pointer deference
+	// If ssh config file doesnt exists, create an empty ssh config struct to avoid nil pointer deference
 	if errors.Is(err, os.ErrNotExist) {
 		c = NewEmptySSHConfigStruct()
 	}
@@ -121,19 +120,63 @@ func (s Server) String() string {
 }
 
 type SSHChannel struct {
-	Local    string
-	Remote   string
-	listener net.Listener
-	conn     net.Conn
+	ChannelType string
+	Source      string
+	Destination string
+	listener    net.Listener
+	conn        net.Conn
 }
 
+// Listen creates tcp listeners for each channel defined.
+func (ch *SSHChannel) Listen(serverClient *ssh.Client) error {
+	var l net.Listener
+	var err error
+
+	if ch.listener == nil {
+		if ch.ChannelType == "local" {
+			l, err = net.Listen("tcp", ch.Source)
+		} else if ch.ChannelType == "remote" {
+			l, err = serverClient.Listen("tcp", ch.Source)
+		} else {
+			return fmt.Errorf("channel can't listen on endpoint: unknown channel type %s", ch.ChannelType)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		ch.listener = l
+
+		// update the endpoint value with assigned port for the cases where the user
+		// haven't explicitily specified one
+		ch.Source = l.Addr().String()
+	}
+
+	return nil
+}
+
+// Accept waits for and return the next connection to the SSHChannel.
+func (ch *SSHChannel) Accept() error {
+	var err error
+
+	if ch.conn, err = ch.listener.Accept(); err != nil {
+		return fmt.Errorf("error while establishing connection: %v", err)
+	}
+
+	return nil
+}
+
+// String returns a string representation of a SSHChannel
 func (ch SSHChannel) String() string {
-	return fmt.Sprintf("[local=%s, remote=%s]", ch.Local, ch.Remote)
+	return fmt.Sprintf("[source=%s, destination=%s]", ch.Source, ch.Destination)
 }
 
 // Tunnel represents the ssh tunnel and the channels connecting local and
 // remote endpoints.
 type Tunnel struct {
+	// Type tells what kind of port forwarding this tunnel will handle: local or remote
+	Type string
+
 	// Ready tells when the Tunnel is ready to accept connections
 	Ready chan bool
 
@@ -158,15 +201,23 @@ type Tunnel struct {
 }
 
 // New creates a new instance of Tunnel.
-func New(server *Server, channels []*SSHChannel) (*Tunnel, error) {
+func New(tunnelType string, server *Server, source, destination []string) (*Tunnel, error) {
+	var channels []*SSHChannel
+	var err error
+
+	channels, err = buildSSHChannels(server.Name, tunnelType, source, destination)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, channel := range channels {
-		if channel.Local == "" || channel.Remote == "" {
-			return nil, fmt.Errorf("invalid ssh channel: local=%s, remote=%s", channel.Local, channel.Remote)
+		if channel.Source == "" || channel.Destination == "" {
+			return nil, fmt.Errorf("invalid ssh channel: source=%s, destination=%s", channel.Source, channel.Destination)
 		}
 	}
 
 	return &Tunnel{
+		Type:          tunnelType,
 		Ready:         make(chan bool, 1),
 		channels:      channels,
 		server:        server,
@@ -210,14 +261,8 @@ func (t *Tunnel) Start() error {
 // Listen creates tcp listeners for each channel defined.
 func (t *Tunnel) Listen() error {
 	for _, ch := range t.channels {
-		if ch.listener == nil {
-			l, err := net.Listen("tcp", ch.Local)
-			if err != nil {
-				return err
-			}
-
-			ch.listener = l
-			ch.Local = l.Addr().String() // update the value with assigned port is the given value is :0
+		if err := ch.Listen(t.client); err != nil {
+			return err
 		}
 	}
 
@@ -227,26 +272,35 @@ func (t *Tunnel) Listen() error {
 func (t *Tunnel) startChannel(channel *SSHChannel) error {
 	var err error
 
-	channel.conn, err = channel.listener.Accept()
+	err = channel.Accept()
 	if err != nil {
-		return fmt.Errorf("error while establishing local connection: %v", err)
+		return err
 	}
 
 	log.WithFields(log.Fields{
 		"channel": channel,
-	}).Debug("local connection established")
+	}).Debug("connection established")
 
 	if t.client == nil {
 		return fmt.Errorf("tunnel channel can't be established: missing connection to the ssh server")
 	}
 
-	remoteConn, err := t.client.Dial("tcp", channel.Remote)
-	if err != nil {
-		return fmt.Errorf("remote dial error: %s", err)
+	var destinationConn net.Conn
+
+	if t.Type == "local" {
+		destinationConn, err = t.client.Dial("tcp", channel.Destination)
+	} else if t.Type == "remote" {
+		destinationConn, err = net.Dial("tcp", channel.Destination)
+	} else {
+		return fmt.Errorf("unknown tunnel type %s", t.Type)
 	}
 
-	go copyConn(channel.conn, remoteConn)
-	go copyConn(remoteConn, channel.conn)
+	if err != nil {
+		return fmt.Errorf("dial error: %s", err)
+	}
+
+	go copyConn(channel.conn, destinationConn)
+	go copyConn(destinationConn, channel.conn)
 
 	log.WithFields(log.Fields{
 		"channel": channel,
@@ -292,7 +346,7 @@ func (t *Tunnel) dial() error {
 			log.WithError(err).WithFields(log.Fields{
 				"server":  t.server,
 				"retries": retries,
-			}).Debugf("error while connecting to ssh server")
+			}).Error("error while connecting to ssh server")
 
 			if t.ConnectionRetries < 0 {
 				break
@@ -325,13 +379,15 @@ func (t *Tunnel) waitAndReconnect() {
 }
 
 func (t *Tunnel) connect() {
-	err := t.Listen()
+	var err error
+
+	err = t.dial()
 	if err != nil {
 		t.done <- err
 		return
 	}
 
-	err = t.dial()
+	err = t.Listen()
 	if err != nil {
 		t.done <- err
 		return
@@ -355,8 +411,8 @@ func (t *Tunnel) connect() {
 			for {
 				once.Do(func() {
 					log.WithFields(log.Fields{
-						"local":  channel.Local,
-						"remote": channel.Remote,
+						"source":      channel.Source,
+						"destination": channel.Destination,
 					}).Info("tunnel channel is waiting for connection")
 
 					waitgroup.Done()
@@ -487,41 +543,39 @@ func expandAddress(address string) string {
 	return address
 }
 
-// BuildSSHChannels normalizes the given set of local and remote addresses,
-// combining them to build a set of ssh channel objects.
-func BuildSSHChannels(serverName string, local, remote []string) ([]*SSHChannel, error) {
-	// if not local and remote were given, try to find the addresses from the SSH
-	// configuration file.
-	if len(local) == 0 && len(remote) == 0 {
-		lf, err := getLocalForward(serverName)
+func buildSSHChannels(serverName, channelType string, source, destination []string) ([]*SSHChannel, error) {
+	// if source and destination were not given, try to find the addresses from the
+	// SSH configuration file.
+	if len(source) == 0 && len(destination) == 0 {
+		f, err := getForward(channelType, serverName)
 		if err != nil {
 			return nil, err
 		}
 
-		local = []string{lf.Local}
-		remote = []string{lf.Remote}
+		source = []string{f.Source}
+		destination = []string{f.Destination}
 	} else {
 
-		lSize := len(local)
-		rSize := len(remote)
+		lSize := len(source)
+		rSize := len(destination)
 
 		if lSize > rSize {
-			// if there are more local than remote addresses given, the additional
+			// if there are more source than destination addresses given, the additional
 			// addresses must be removed.
 			if rSize == 0 {
-				return nil, fmt.Errorf(NoRemoteGiven)
+				return nil, fmt.Errorf(NoDestinationGiven)
 			}
 
-			local = local[0:rSize]
+			source = source[0:rSize]
 		} else if lSize < rSize {
-			// if there are more remote than local addresses given, the missing local
-			// addresses should be configured as localhost with random ports.
+			// if there are more destination than source addresses given, the missing
+			// source addresses should be configured as localhost with random ports.
 			nl := make([]string, rSize)
 
-			for i, _ := range remote {
+			for i := range destination {
 				if i < lSize {
-					if local[i] != "" {
-						nl[i] = local[i]
+					if source[i] != "" {
+						nl[i] = source[i]
 					} else {
 						nl[i] = RandomPortAddress
 					}
@@ -530,27 +584,29 @@ func BuildSSHChannels(serverName string, local, remote []string) ([]*SSHChannel,
 				}
 			}
 
-			local = nl
+			source = nl
 		}
 	}
 
-	for i, addr := range local {
-		local[i] = expandAddress(addr)
+	for i, addr := range source {
+		source[i] = expandAddress(addr)
 	}
 
-	for i, addr := range remote {
-		remote[i] = expandAddress(addr)
+	for i, addr := range destination {
+		destination[i] = expandAddress(addr)
 	}
 
-	channels := make([]*SSHChannel, len(remote))
-	for i, r := range remote {
-		channels[i] = &SSHChannel{Local: local[i], Remote: r}
+	channels := make([]*SSHChannel, len(destination))
+	for i, d := range destination {
+		channels[i] = &SSHChannel{ChannelType: channelType, Source: source[i], Destination: d}
 	}
 
 	return channels, nil
 }
 
-func getLocalForward(serverName string) (*LocalForward, error) {
+func getForward(channelType, serverName string) (*ForwardConfig, error) {
+	var f *ForwardConfig
+
 	cfg, err := NewSSHConfigFile()
 	if err != nil {
 		return nil, fmt.Errorf("error reading ssh configuration file: %v", err)
@@ -558,9 +614,17 @@ func getLocalForward(serverName string) (*LocalForward, error) {
 
 	sh := cfg.Get(serverName)
 
-	if sh.LocalForward == nil {
-		return nil, fmt.Errorf("LocalForward could not be found or has invalid syntax for host %s", serverName)
+	if channelType == "local" {
+		f = sh.LocalForward
+	} else if channelType == "remote" {
+		f = sh.RemoteForward
+	} else {
+		return nil, fmt.Errorf("could not retrieve forwarding information from ssh configuration file: unsupported channel type %s", channelType)
 	}
 
-	return sh.LocalForward, nil
+	if f == nil {
+		return nil, fmt.Errorf("forward config could not be found or has invalid syntax for host %s", serverName)
+	}
+
+	return f, nil
 }
