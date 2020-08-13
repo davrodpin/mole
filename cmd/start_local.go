@@ -29,7 +29,9 @@ Destination endpoints are adrresess that can be reached from the jump server.
 }
 
 func init() {
-	err := bindFlags(tunnelFlags, localCmd)
+	var err error
+
+	err = bindFlags(tunnelFlags, localCmd)
 	if err != nil {
 		log.WithError(err).Error("error parsing command line arguments")
 		os.Exit(1)

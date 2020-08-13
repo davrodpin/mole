@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"text/template"
+	"time"
 
 	"github.com/davrodpin/mole/alias"
 )
@@ -239,6 +240,137 @@ func TestShowAll(t *testing.T) {
 	if expectedShowOutput != showOutput {
 		t.Errorf("ShowAll output format has changed")
 	}
+}
+
+func TestAliasMerge(t *testing.T) {
+	keepAliveInterval, _ := time.ParseDuration("5s")
+
+	tests := []struct {
+		alias       alias.Alias
+		tunnelFlags *alias.TunnelFlags
+	}{
+		{
+			alias.Alias{
+				Verbose:           false,
+				Insecure:          false,
+				Detach:            false,
+				Source:            []string{"127.0.0.1:80"},
+				Destination:       []string{"172.17.0.100:8080"},
+				Server:            "user@example.com:22",
+				Key:               "path/to/key/1",
+				KeepAliveInterval: "3s",
+				ConnectionRetries: 3,
+				WaitAndRetry:      "10s",
+				SshAgent:          "path/to/sshagent",
+				Timeout:           "3s",
+			},
+			&alias.TunnelFlags{
+				Verbose:           true,
+				Insecure:          true,
+				Detach:            true,
+				Source:            alias.AddressInputList([]alias.AddressInput{alias.AddressInput{Host: "127.0.0.1", Port: "80"}}),
+				Destination:       alias.AddressInputList([]alias.AddressInput{alias.AddressInput{Host: "172.17.0.100", Port: "8080"}}),
+				Server:            alias.AddressInput{Host: "acme.com", Port: "22"},
+				Key:               "path/to/key/2",
+				KeepAliveInterval: keepAliveInterval,
+				ConnectionRetries: 10,
+			},
+		},
+	}
+
+	for id, test := range tests {
+		test.alias.Merge(test.tunnelFlags)
+
+		if test.alias.Verbose != test.tunnelFlags.Verbose {
+			t.Errorf("alias verbose doesn't match on test %d: expected: %t, value: %t", id, test.tunnelFlags.Verbose, test.alias.Verbose)
+		}
+
+		if test.alias.Insecure != test.tunnelFlags.Insecure {
+			t.Errorf("alias insecure doesn't match on test %d: expected: %t, value: %t", id, test.tunnelFlags.Insecure, test.alias.Insecure)
+		}
+
+		if test.alias.Detach != test.tunnelFlags.Detach {
+			t.Errorf("alias detach doesn't match on test %d: expected: %t, value: %t", id, test.tunnelFlags.Detach, test.alias.Detach)
+		}
+	}
+
+}
+
+func TestParseAlias(t *testing.T) {
+	kai, _ := time.ParseDuration("3s")
+	war, _ := time.ParseDuration("5s")
+	tim, _ := time.ParseDuration("1s")
+
+	flags := alias.TunnelFlags{
+		TunnelType:        "local",
+		Verbose:           false,
+		Insecure:          false,
+		Detach:            false,
+		Source:            alias.AddressInputList{alias.AddressInput{Host: "127.0.0.1", Port: "8080"}},
+		Destination:       alias.AddressInputList{alias.AddressInput{Host: "172.17.0.100", Port: "80"}},
+		Server:            alias.AddressInput{},
+		Key:               "path/to/key/1",
+		KeepAliveInterval: kai,
+		ConnectionRetries: 3,
+		WaitAndRetry:      war,
+		SshAgent:          "path/to/sshagent",
+		Timeout:           tim,
+	}
+
+	al := flags.ParseAlias("aliasName")
+
+	if flags.TunnelType != al.TunnelType {
+		t.Errorf("tunnelType does not match: expected: %s, value: %s", flags.TunnelType, al.TunnelType)
+	}
+
+	if flags.Verbose != al.Verbose {
+		t.Errorf("verbose does not match: expected: %t, value: %t", flags.Verbose, al.Verbose)
+	}
+
+	if flags.Insecure != al.Insecure {
+		t.Errorf("insecure does not match: expected: %t, value: %t", flags.Insecure, al.Insecure)
+	}
+
+	if flags.Detach != al.Detach {
+		t.Errorf("detach does not match: expected: %t, value: %t", flags.Detach, al.Detach)
+	}
+
+	if !reflect.DeepEqual(flags.Source.List(), al.Source) {
+		t.Errorf("source does not match: expected: %s, value: %s", flags.Source.List(), al.Source)
+	}
+
+	if !reflect.DeepEqual(flags.Destination.List(), al.Destination) {
+		t.Errorf("destination does not match: expected: %s, value: %s", flags.Destination.List(), al.Destination)
+	}
+
+	if flags.Server.String() != al.Server {
+		t.Errorf("server does not match: expected: %s, value: %s", flags.Server.String(), al.Server)
+	}
+
+	if flags.Key != al.Key {
+		t.Errorf("key does not match: expected: %s, value: %s", flags.Key, al.Key)
+	}
+
+	if flags.KeepAliveInterval.String() != al.KeepAliveInterval {
+		t.Errorf("keep alive interval does not match: expected: %s, value: %s", flags.KeepAliveInterval.String(), al.KeepAliveInterval)
+	}
+
+	if flags.ConnectionRetries != al.ConnectionRetries {
+		t.Errorf("connection retries does not match: expected: %d, value: %d", flags.ConnectionRetries, al.ConnectionRetries)
+	}
+
+	if flags.WaitAndRetry.String() != al.WaitAndRetry {
+		t.Errorf("wait and retry does not match: expected: %s, value: %s", flags.WaitAndRetry.String(), al.WaitAndRetry)
+	}
+
+	if flags.SshAgent != al.SshAgent {
+		t.Errorf("ssh agent does not match: expected: %s, value: %s", flags.SshAgent, al.SshAgent)
+	}
+
+	if flags.Timeout.String() != al.Timeout {
+		t.Errorf("timeout does not match: expected: %s, value: %s", flags.Timeout.String(), al.Timeout)
+	}
+
 }
 
 func addAlias() (*alias.Alias, error) {

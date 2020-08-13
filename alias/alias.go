@@ -167,6 +167,13 @@ func (a Alias) ParseTunnelFlags() (*TunnelFlags, error) {
 	return tf, nil
 }
 
+// Merge overwrites certain Alias attributes based on the given TunnelFlags.
+func (a *Alias) Merge(tunnelFlags *TunnelFlags) {
+	a.Verbose = tunnelFlags.Verbose
+	a.Insecure = tunnelFlags.Insecure
+	a.Detach = tunnelFlags.Detach
+}
+
 func (a Alias) String() string {
 	return fmt.Sprintf("[verbose: %t, insecure: %t, detach: %t, source: %s, destination: %s, server: %s, key: %s, keep-alive-interval: %s, connection-retries: %d, wait-and-retry: %s, ssh-agent: %s, timeout: %s]",
 		a.Verbose,
