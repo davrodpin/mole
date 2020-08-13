@@ -63,23 +63,23 @@ provide 0 to never give up or a negative number to disable`)
 	return nil
 }
 
-func start(alias string, tunnelFlags *alias.TunnelFlags) {
+func start(id string, tunnelFlags *alias.TunnelFlags) {
 	if tunnelFlags.Detach {
 		var err error
 
-		if alias == "" {
+		if id == "" {
 			u, err := uuid.NewV4()
 			if err != nil {
 				log.Errorf("error could not generate uuid: %v", err)
 				os.Exit(1)
 			}
-			alias = u.String()[:8]
+			id = u.String()[:8]
 		}
 
-		err = startDaemonProcess(alias)
+		err = startDaemonProcess(id)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"alias": alias,
+				"id": id,
 			}).Errorf("error starting ssh tunnel: %v", err)
 			os.Exit(1)
 		}
@@ -204,12 +204,7 @@ func startDaemonProcess(aliasName string) error {
 	return nil
 }
 
-func startWithAlias(aliasName string) error {
-	a, err := alias.Get(aliasName)
-	if err != nil {
-		return err
-	}
-
+func startFromAlias(aliasName string, a *alias.Alias) error {
 	f, err := a.ParseTunnelFlags()
 	if err != nil {
 		return err
