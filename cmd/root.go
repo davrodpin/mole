@@ -23,7 +23,7 @@ var (
 
 	rootCmd = &cobra.Command{
 		Use:  "mole",
-		Long: "Easily create ssh tunnels",
+		Long: "Tool to manage ssh tunnels focused on resiliency and user experience.",
 	}
 )
 

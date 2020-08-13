@@ -1,8 +1,8 @@
 [![Documentation](https://godoc.org/github.com/davrodpin/mole?status.svg)](http://godoc.org/github.com/davrodpin/mole)
 # [Mole](https://davrodpin.github.io/mole/)
 
-Mole is a cli application to create ssh tunnels, forwarding a local port to a
-remote endpoint through a ssh server.
+Mole is a cli application to create ssh tunnels focused on resiliency and user
+experience.
 
 For more information about installation, usage, examples and specific use cases,
 please visit https://davrodpin.github.io/mole/
