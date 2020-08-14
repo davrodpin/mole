@@ -16,7 +16,7 @@ INFO[0000] tunnel channel is waiting for connection      destination="127.0.0.1:
   * [Create multiple tunnels using a single ssh connection](#create-multiple-tunnels-using-a-single-ssh-connection): multiple tunnels can be established using a single connection to a ssh server by specifying different `--destination` flags.
   * [Aliases](#create-an-alias-so-there-is-no-need-to-remember-the-tunnel-settings-afterwards): save your tunnel settings under an alias, so it can be reused later.
   * Leverage the SSH Config File: use some options (e.g. user name, identity key and port), specified in *$HOME/.ssh/config* whenever possible, so there is no need to have the same SSH server configuration in multiple places.
-  * Resiliency! Then tunnel will never go down if you don't want it to:
+  * Resiliency! Then tunnel will never go down if you don't want to:
     * Idle clients do not get disconnected from the ssh server since Mole keeps sending synthetic packets acting as a keep alive mechanism. 
     * Auto reconnection to the ssh server if the it is dropped by any reason.
 
@@ -115,7 +115,7 @@ _...or why on Earth would I need something like this?_
 ```sh
 $ mole start local \
   --source 127.0.0.1:3306 \
-  --destination 127.0.0.1:3306 \
+  --destination 192.168.1.1:3306 \
   --server user@172.17.0.100
 ```
 
