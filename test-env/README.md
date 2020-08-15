@@ -68,6 +68,8 @@ or more seconds.
 `mole_http` runs two http servers listening on port `80` and `8080`, so clients
 would be able to access the using the following urls: `http://192.168.33.11:80/`
 and `http://192.168.33.11:8080/`
+It also publishes the port `8080` to the host machine to be used as a web server
+to test remote port forwarding.
 
 ### Teardown
 
@@ -81,7 +83,9 @@ This will destroy both of the containers that was built by running
 The ssh authentication key files, `test-env/key` and `test-env/key,pub` will
 **not** be deleted.
 
-## How to use the test environment and mole together
+## How to use the test environment and mole altogether
+
+### Local Port Forwarding
 
 ```sh
 $ make test-env
@@ -103,10 +107,37 @@ DEBU[0000] connection to the ssh server is established   server="[name=127.0.0.1
 DEBU[0000] start sending keep alive packets
 INFO[0000] tunnel channel is waiting for connection      destination="192.168.33.11:8080" source="127.0.0.1:21113"
 INFO[0000] tunnel channel is waiting for connection      destination="192.168.33.11:80" source="127.0.0.1:21112"
+$ curl localhost:21112
+:)
+$ curl localhost:21113
+:)
 ```
 
 NOTE: If you're wondering about the smile face, that is the response from both 
 http servers.
+
+### Remote Port Forwarding
+
+```sh
+$ mole start remote \
+    --verbose \
+    --insecure \
+    --source 192.168.33.11:9090 \
+    --destination 127.0.0.1:8080 \
+    --server mole@127.0.0.01:22122 \
+    --key test-env/ssh-server/keys/key \
+    --keep-alive-interval 2s
+DEBU[0000] using ssh config file from: /home/mole/.ssh/config
+DEBU[0000] server: [name=127.0.0.01, address=127.0.0.01:22122, user=mole]
+DEBU[0000] tunnel: [channels:[[source=192.168.33.11:9090, destination=127.0.0.1:8080]], server:127.0.0.01:22122]
+DEBU[0000] connection to the ssh server is established   server="[name=127.0.0.01, address=127.0.0.01:22122, user=mole]"
+DEBU[0000] start sending keep alive packets
+INFO[0000] tunnel channel is waiting for connection      destination="127.0.0.1:8080" source="192.168.33.11:9090"
+DEBU[0001] connection established                        channel="[source=192.168.33.11:9090, destination=127.0.0.1:8080]"
+DEBU[0001] tunnel channel has been established           channel="[source=192.168.33.11:9090, destination=127.0.0.1:8080]" server="[name=127.0.0.01, address=127.0.0.01:22122, user=mole]"
+$ docker exec mole_ssh curl -s localhost:9090
+:)
+```
 
 ## How to manage the ssh server instance
 
