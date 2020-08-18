@@ -24,6 +24,7 @@
 
 set -o pipefail
 
+target_version=$1
 repository="davrodpin/mole"
 install_path="/usr/local/bin"
 curl_timeout_seconds=60
@@ -42,20 +43,22 @@ fi
 # Get the OS type
 os_type=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-# Get latest version of mole available
-	latest_version=$(curl --silent --location --max-time "${curl_timeout_seconds}" "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-if [ $? -ne 0 ]; then
-	echo -ne "\nThere was an error trying to check what is the latest version of mole.\nPlease try again later.\n"
-	exit 1
+if [ -z "$target_version" ]; then
+	# Get latest version of mole available
+	target_version=$(curl --silent --location --max-time "${curl_timeout_seconds}" "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+	if [ $? -ne 0 ]; then
+		echo -ne "\nThere was an error trying to check what is the latest version of mole.\nPlease try again later.\n"
+		exit 1
+	fi
 fi
 
-filename="mole${latest_version#v}.${os_type}-amd64.tar.gz"
-download_link="https://github.com/${repository}/releases/download/${latest_version}/${filename}"
+filename="mole${target_version#v}.${os_type}-amd64.tar.gz"
+download_link="https://github.com/${repository}/releases/download/${target_version}/${filename}"
 
-echo -ne "\nThis script is about to install mole under ${install_path}, but it needs administrator privileges in order to deploy the file.  It may require you to type your password below:\n"
+echo -ne "\nThis script is about to install mole ${target_version} under ${install_path}, but it needs administrator privileges in order to deploy the file.  It may require you to type your password below:\n"
 curl --silent --location --max-time "${curl_timeout_seconds}" "${download_link}" | sudo tar -xz -C "${install_path}" 2>/dev/null|| {
-	echo -ne "\nThere was an error trying to install the latest version of mole.\nPlease try again later.\n"
+	echo -ne "\nThere was an error trying to install ${target_version} version of mole.\nPlease try again later.\n"
 	exit 1
 }
 
-echo -ne "\nmole ${latest_version} installed succesfully on ${install_path}\n"
+echo -ne "\nmole ${target_version} installed succesfully on ${install_path}\n"
