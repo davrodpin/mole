@@ -46,6 +46,8 @@ os_type=$(uname -s | tr '[:upper:]' '[:lower:]')
 if [ -z "$target_version" ]; then
 	# Get latest version of mole available
 	target_version=$(curl --silent --location --max-time "${curl_timeout_seconds}" "https://api.github.com/repos/${repository}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+	# Clean version tag to version number
+	target_version="${target_version//v}"
 	if [ $? -ne 0 ]; then
 		echo -ne "\nThere was an error trying to check what is the latest version of mole.\nPlease try again later.\n"
 		exit 1
