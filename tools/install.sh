@@ -53,7 +53,7 @@ if [ -z "$target_version" ]; then
 fi
 
 filename="mole${target_version#v}.${os_type}-amd64.tar.gz"
-download_link="https://github.com/${repository}/releases/download/${target_version}/${filename}"
+download_link="https://github.com/${repository}/releases/download/v${target_version}/${filename}"
 
 echo -ne "\nThis script is about to install mole ${target_version} under ${install_path}, but it needs administrator privileges in order to deploy the file.  It may require you to type your password below:\n"
 curl --silent --location --max-time "${curl_timeout_seconds}" "${download_link}" | sudo tar -xz -C "${install_path}" 2>/dev/null|| {
