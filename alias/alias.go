@@ -10,12 +10,11 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/davrodpin/mole/fsutils"
 )
 
 const (
-	InstancePidFile = "pid"
-	InstanceLogFile = "mole.log"
-	ShowTemplate    = `{{.Name}}
+	ShowTemplate = `{{.Name}}
               verbose: {{.Verbose}}
              insecure: {{.Insecure}}
                detach: {{.Detach}}
@@ -213,27 +212,6 @@ func (a Alias) String() string {
 	)
 }
 
-type InstanceConfiguration struct {
-	Home    string
-	LogFile string
-	PidFile string
-}
-
-func NewInstanceConfiguration(aliasName string) (*InstanceConfiguration, error) {
-	aliasDir, err := Dir()
-	if err != nil {
-		return nil, err
-	}
-
-	home := filepath.Join(aliasDir, aliasName)
-
-	return &InstanceConfiguration{
-		Home:    home,
-		LogFile: filepath.Join(home, InstanceLogFile),
-		PidFile: filepath.Join(home, InstancePidFile),
-	}, nil
-}
-
 // Add persists an tunnel alias to the disk
 func Add(alias *Alias) error {
 	mp, err := createDir()
@@ -260,7 +238,7 @@ func Add(alias *Alias) error {
 
 // Delete destroys a alias configuration file.
 func Delete(alias string) error {
-	mp, err := Dir()
+	mp, err := fsutils.Dir()
 
 	if err != nil {
 		return err
@@ -282,7 +260,7 @@ func Delete(alias string) error {
 
 // Show displays the configuration parameters for the given alias name.
 func Show(aliasName string) (string, error) {
-	mp, err := Dir()
+	mp, err := fsutils.Dir()
 	if err != nil {
 		return "", err
 	}
@@ -294,7 +272,7 @@ func Show(aliasName string) (string, error) {
 
 // ShowAll displays the configuration parameters for all persisted aliases.
 func ShowAll() (string, error) {
-	mp, err := Dir()
+	mp, err := fsutils.Dir()
 	if err != nil {
 		return "", err
 	}
@@ -324,7 +302,7 @@ func ShowAll() (string, error) {
 
 // Get returns an alias previously created
 func Get(aliasName string) (*Alias, error) {
-	mp, err := Dir()
+	mp, err := fsutils.Dir()
 	if err != nil {
 		return nil, err
 	}
@@ -342,18 +320,6 @@ func Get(aliasName string) (*Alias, error) {
 	a.Name = aliasName
 
 	return a, nil
-}
-
-// Dir returns directory path where all alias files are stored.
-func Dir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	mp := filepath.Join(home, ".mole")
-
-	return mp, nil
 }
 
 func showAlias(filePath string) (string, error) {
@@ -379,7 +345,7 @@ func showAlias(filePath string) (string, error) {
 }
 
 func createDir() (string, error) {
-	mp, err := Dir()
+	mp, err := fsutils.Dir()
 	if err != nil {
 		return "", err
 	}

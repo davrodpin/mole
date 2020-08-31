@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/davrodpin/mole/alias"
+	"github.com/davrodpin/mole/app"
 	"github.com/davrodpin/mole/tunnel"
 
 	"github.com/awnumar/memguard"
-	"github.com/gofrs/uuid"
 	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,7 +24,7 @@ var (
 
 	rootCmd = &cobra.Command{
 		Use:  "mole",
-		Long: "Tool to manage ssh tunnels focused on resiliency and user experience.",
+		Long: "Tool to create ssh tunnels focused on resiliency and user experience.",
 	}
 )
 
@@ -72,20 +72,17 @@ func start(id string, tunnelFlags *alias.TunnelFlags) {
 	if tunnelFlags.Detach {
 		var err error
 
-		if id == "" {
-			u, err := uuid.NewV4()
-			if err != nil {
-				log.Errorf("error could not generate uuid: %v", err)
-				os.Exit(1)
-			}
-			id = u.String()[:8]
+		ic, err := app.NewDetachedInstance(id)
+		if err != nil {
+			log.WithError(err).Errorf("error while creating directory to store mole instance related files")
+			os.Exit(1)
 		}
 
-		err = startDaemonProcess(id)
+		err = startDaemonProcess(ic)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"id": id,
-			}).Errorf("error starting ssh tunnel: %v", err)
+			}).WithError(err).Error("error starting ssh tunnel")
 			os.Exit(1)
 		}
 	}
@@ -157,11 +154,11 @@ func start(id string, tunnelFlags *alias.TunnelFlags) {
 	}
 }
 
-func startDaemonProcess(aliasName string) error {
+func startDaemonProcess(instanceConf *app.DetachedInstance) error {
 	cntxt := &daemon.Context{
-		PidFileName: alias.InstancePidFile,
+		PidFileName: app.InstancePidFile,
 		PidFilePerm: 0644,
-		LogFileName: alias.InstanceLogFile,
+		LogFileName: app.InstanceLogFile,
 		LogFilePerm: 0640,
 		Umask:       027,
 		Args:        os.Args,
@@ -173,33 +170,17 @@ func startDaemonProcess(aliasName string) error {
 	}
 
 	if d != nil {
-		ic, err := alias.NewInstanceConfiguration(aliasName)
-		if err != nil {
-			return fmt.Errorf("error getting information about aliases directory: %v", err)
-		}
-
-		if _, err := os.Stat(ic.Home); os.IsNotExist(err) {
-			err := os.Mkdir(ic.Home, 0755)
-			if err != nil {
-				return err
-			}
-		}
-
-		if _, err := os.Stat(ic.PidFile); !os.IsNotExist(err) {
-			return fmt.Errorf("ssh tunnel seems to be already running")
-		}
-
-		err = os.Rename(alias.InstancePidFile, ic.PidFile)
+		err = os.Rename(app.InstancePidFile, instanceConf.PidFile)
 		if err != nil {
 			return err
 		}
 
-		err = os.Rename(alias.InstanceLogFile, ic.LogFile)
+		err = os.Rename(app.InstanceLogFile, instanceConf.LogFile)
 		if err != nil {
 			return err
 		}
 
-		log.Infof("execute \"mole stop %s\" if you like to stop it at any time", aliasName)
+		log.Infof("execute \"mole stop %s\" if you like to stop it at any time", instanceConf.Id)
 
 		os.Exit(0)
 	}
@@ -221,22 +202,17 @@ func startFromAlias(aliasName string, a *alias.Alias) error {
 }
 
 func stop(id string) error {
-	ic, err := alias.NewInstanceConfiguration(id)
+	pfp, err := app.GetPidFileLocation(id)
 	if err != nil {
 		return fmt.Errorf("error getting information about aliases directory: %v", err)
 	}
 
-	if _, err := os.Stat(ic.PidFile); os.IsNotExist(err) {
-		return fmt.Errorf("an instance of mole, %s, is not running", id)
+	if _, err := os.Stat(pfp); os.IsNotExist(err) {
+		return fmt.Errorf("no instance of mole with id %s is running", id)
 	}
 
 	cntxt := &daemon.Context{
-		PidFileName: ic.PidFile,
-		PidFilePerm: 0644,
-		LogFileName: ic.LogFile,
-		LogFilePerm: 0640,
-		Umask:       027,
-		Args:        os.Args,
+		PidFileName: pfp,
 	}
 
 	d, err := cntxt.Search()
@@ -249,7 +225,7 @@ func stop(id string) error {
 		return err
 	}
 
-	err = os.RemoveAll(ic.PidFile)
+	err = os.RemoveAll(pfp)
 	if err != nil {
 		return err
 	}
