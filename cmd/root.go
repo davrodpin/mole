@@ -29,10 +29,6 @@ var (
 
 // Execute executes the root command
 func Execute() error {
-	// memguard is used to securely keep sensitive information in memory.
-	// This call makes sure all data will be destroy when the program exits.
-	defer memguard.Purge()
-
 	log.SetOutput(os.Stdout)
 
 	return rootCmd.Execute()
@@ -64,6 +60,10 @@ provide 0 to never give up or a negative number to disable`)
 }
 
 func start(id string, tunnelFlags *alias.TunnelFlags) {
+	// memguard is used to securely keep sensitive information in memory.
+	// This call makes sure all data will be destroy when the program exits.
+	defer memguard.Purge()
+
 	if tunnelFlags.Detach {
 		var err error
 
