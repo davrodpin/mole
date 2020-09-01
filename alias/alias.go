@@ -47,6 +47,9 @@ type TunnelFlags struct {
 	WaitAndRetry      time.Duration
 	SshAgent          string
 	Timeout           time.Duration
+
+	// GivenFlags contains list of all flags that were given by the user.
+	GivenFlags []string
 }
 
 // ParseAlias translates a TunnelFlags object to an Alias object
@@ -67,6 +70,17 @@ func (tf TunnelFlags) ParseAlias(name string) *Alias {
 		SshAgent:          tf.SshAgent,
 		Timeout:           tf.Timeout.String(),
 	}
+}
+
+// FlagGiven tells if a specific flag was given by the user through CLI.
+func (tf TunnelFlags) FlagGiven(flag string) bool {
+	for _, f := range tf.GivenFlags {
+		if flag == f {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (tf TunnelFlags) String() string {
@@ -169,9 +183,17 @@ func (a Alias) ParseTunnelFlags() (*TunnelFlags, error) {
 
 // Merge overwrites certain Alias attributes based on the given TunnelFlags.
 func (a *Alias) Merge(tunnelFlags *TunnelFlags) {
-	a.Verbose = tunnelFlags.Verbose
-	a.Insecure = tunnelFlags.Insecure
-	a.Detach = tunnelFlags.Detach
+	if tunnelFlags.FlagGiven("verbose") {
+		a.Verbose = tunnelFlags.Verbose
+	}
+
+	if tunnelFlags.FlagGiven("insecure") {
+		a.Insecure = tunnelFlags.Insecure
+	}
+
+	if tunnelFlags.FlagGiven("detach") {
+		a.Detach = tunnelFlags.Detach
+	}
 }
 
 func (a Alias) String() string {

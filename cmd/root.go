@@ -14,6 +14,7 @@ import (
 	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -55,6 +56,10 @@ provide 0 to never give up or a negative number to disable`)
 	if err != nil {
 		return err
 	}
+
+	flag.Visit(func(f *flag.Flag) {
+		flags.GivenFlags = append(flags.GivenFlags, f.Name)
+	})
 
 	return nil
 }
