@@ -248,6 +248,7 @@ func TestAliasMerge(t *testing.T) {
 	tests := []struct {
 		alias       alias.Alias
 		tunnelFlags *alias.TunnelFlags
+		expected    alias.Alias
 	}{
 		{
 			alias.Alias{
@@ -274,6 +275,45 @@ func TestAliasMerge(t *testing.T) {
 				Key:               "path/to/key/2",
 				KeepAliveInterval: keepAliveInterval,
 				ConnectionRetries: 10,
+				GivenFlags:        []string{"verbose", "insecure", "detach"},
+			},
+			alias.Alias{
+				Verbose:  true,
+				Insecure: true,
+				Detach:   true,
+			},
+		},
+		{
+			alias.Alias{
+				Verbose:           true,
+				Insecure:          true,
+				Detach:            true,
+				Source:            []string{"127.0.0.1:80"},
+				Destination:       []string{"172.17.0.100:8080"},
+				Server:            "user@example.com:22",
+				Key:               "path/to/key/1",
+				KeepAliveInterval: "3s",
+				ConnectionRetries: 3,
+				WaitAndRetry:      "10s",
+				SshAgent:          "path/to/sshagent",
+				Timeout:           "3s",
+			},
+			&alias.TunnelFlags{
+				Verbose:           false,
+				Insecure:          false,
+				Detach:            false,
+				Source:            alias.AddressInputList([]alias.AddressInput{alias.AddressInput{Host: "127.0.0.1", Port: "80"}}),
+				Destination:       alias.AddressInputList([]alias.AddressInput{alias.AddressInput{Host: "172.17.0.100", Port: "8080"}}),
+				Server:            alias.AddressInput{Host: "acme.com", Port: "22"},
+				Key:               "path/to/key/2",
+				KeepAliveInterval: keepAliveInterval,
+				ConnectionRetries: 10,
+				GivenFlags:        []string{},
+			},
+			alias.Alias{
+				Verbose:  true,
+				Insecure: true,
+				Detach:   true,
 			},
 		},
 	}
@@ -281,16 +321,16 @@ func TestAliasMerge(t *testing.T) {
 	for id, test := range tests {
 		test.alias.Merge(test.tunnelFlags)
 
-		if test.alias.Verbose != test.tunnelFlags.Verbose {
-			t.Errorf("alias verbose doesn't match on test %d: expected: %t, value: %t", id, test.tunnelFlags.Verbose, test.alias.Verbose)
+		if test.expected.Verbose != test.alias.Verbose {
+			t.Errorf("alias verbose doesn't match on test %d: expected: %t, value: %t", id, test.expected.Verbose, test.alias.Verbose)
 		}
 
-		if test.alias.Insecure != test.tunnelFlags.Insecure {
-			t.Errorf("alias insecure doesn't match on test %d: expected: %t, value: %t", id, test.tunnelFlags.Insecure, test.alias.Insecure)
+		if test.expected.Insecure != test.alias.Insecure {
+			t.Errorf("alias insecure doesn't match on test %d: expected: %t, value: %t", id, test.expected.Insecure, test.alias.Insecure)
 		}
 
-		if test.alias.Detach != test.tunnelFlags.Detach {
-			t.Errorf("alias detach doesn't match on test %d: expected: %t, value: %t", id, test.tunnelFlags.Detach, test.alias.Detach)
+		if test.expected.Detach != test.alias.Detach {
+			t.Errorf("alias detach doesn't match on test %d: expected: %t, value: %t", id, test.expected.Detach, test.alias.Detach)
 		}
 	}
 
