@@ -21,3 +21,8 @@ $ sudo make install
 
 The project provides a small automated infrastructure to help with manual testing
 Please refer to [this document](test-env/README.md) for more details about it.
+
+# How to Contribute
+
+Please refere to [CONTRIBUTING.md](https://github.com/davrodpin/mole/blob/master/CONTRIBUTING.md)
+for details on how to contribute to this project.
