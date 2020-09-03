@@ -20,6 +20,7 @@ import (
 
 var (
 	aliasName   string
+	id          string
 	tunnelFlags = &alias.TunnelFlags{}
 
 	rootCmd = &cobra.Command{

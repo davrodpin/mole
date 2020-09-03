@@ -103,7 +103,20 @@ func GetPidFileLocation(id string) (string, error) {
 		return "", err
 	}
 
-	lfp := filepath.Join(d, id, InstancePidFile)
+	pfp := filepath.Join(d, id, InstancePidFile)
+
+	return pfp, nil
+}
+
+// GetLogFileLocation return the file system location of the file where all
+// log messages are saved for an specific detached application instance.
+func GetLogFileLocation(id string) (string, error) {
+	d, err := fsutils.Dir()
+	if err != nil {
+		return "", err
+	}
+
+	lfp := filepath.Join(d, id, InstanceLogFile)
 
 	return lfp, nil
 }

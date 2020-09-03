@@ -9,8 +9,6 @@ import (
 )
 
 var (
-	id string
-
 	stopCmd = &cobra.Command{
 		Use:   "stop [alias name or id]",
 		Short: "Stops a ssh tunnel",
