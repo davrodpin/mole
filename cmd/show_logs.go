@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bufio"
-	"fmt"
 	"os"
 
 	"github.com/davrodpin/mole/app"
@@ -12,6 +10,7 @@ import (
 )
 
 var (
+	follow      bool
 	showLogsCmd = &cobra.Command{
 		Use:   "logs [name]",
 		Short: "Shows log messages of a detached running application instance",
@@ -24,30 +23,11 @@ var (
 			return nil
 		},
 		Run: func(cmd *cobra.Command, arg []string) {
-			lfl, err := app.GetLogFileLocation(id)
-			if err != nil {
-				log.WithError(err).Error("error stopping detached mole instance")
-				os.Exit(1)
-			}
-
-			file, err := os.Open(lfl)
+			err := app.ShowLogs(id, follow)
 			if err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"id": id,
 				}).Error("error opening log file")
-				os.Exit(1)
-			}
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				fmt.Println(scanner.Text())
-			}
-
-			if err := scanner.Err(); err != nil {
-				log.WithError(err).WithFields(log.Fields{
-					"id": id,
-				}).Error("error reading log file")
 				os.Exit(1)
 			}
 		},
@@ -55,5 +35,6 @@ var (
 )
 
 func init() {
+	showLogsCmd.Flags().BoolVarP(&follow, "follow", "f", false, "output appended data as the file grows")
 	showCmd.AddCommand(showLogsCmd)
 }

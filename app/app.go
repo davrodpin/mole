@@ -9,6 +9,7 @@ import (
 
 	"github.com/davrodpin/mole/fsutils"
 	"github.com/gofrs/uuid"
+	"github.com/hpcloud/tail"
 )
 
 const (
@@ -31,7 +32,7 @@ type DetachedInstance struct {
 }
 
 // NewDetachedInstance returns a new instance of DetachedInstance, making sure
-// the instance directory is created.
+// the application instance directory is created.
 func NewDetachedInstance(id string) (*DetachedInstance, error) {
 	instanceDir, err := fsutils.Dir()
 	if err != nil {
@@ -49,21 +50,22 @@ func NewDetachedInstance(id string) (*DetachedInstance, error) {
 	home := filepath.Join(instanceDir, id)
 
 	if _, err := os.Stat(home); os.IsNotExist(err) {
-		err := os.Mkdir(home, 0755)
+		err := os.MkdirAll(home, 0755)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	lfp, err := GetPidFileLocation(id)
+	pfl, err := GetPidFileLocation(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := os.Stat(lfp); !os.IsNotExist(err) {
-		data, err := ioutil.ReadFile(lfp)
+	if _, err = os.Stat(pfl); !os.IsNotExist(err) {
+		_, err = os.Stat(pfl)
+		data, err := ioutil.ReadFile(pfl)
 		if err != nil {
-			return nil, fmt.Errorf("something went wrong while opening pid file %s: %v", lfp, err)
+			return nil, fmt.Errorf("something went wrong while reading from pid file %s: %v", pfl, err)
 		}
 
 		pid := string(data)
@@ -74,24 +76,28 @@ func NewDetachedInstance(id string) (*DetachedInstance, error) {
 
 	}
 
-	lf, err := os.Create(lfp)
-	if err != nil {
-		return nil, fmt.Errorf("could not create log file for application instance %s: %v", id, err)
-	}
-	defer lf.Close()
-
-	pfp := filepath.Join(home, InstancePidFile)
-	pf, err := os.Create(pfp)
+	pf, err := os.Create(pfl)
 	if err != nil {
 		return nil, fmt.Errorf("could not create pid file for application instance %s: %v", id, err)
 	}
 	defer pf.Close()
 	pf.WriteString(strconv.Itoa(os.Getpid()))
 
+	lfl, err := GetLogFileLocation(id)
+	if err != nil {
+		return nil, err
+	}
+
+	lf, err := os.Create(lfl)
+	if err != nil {
+		return nil, fmt.Errorf("could not create log file for application instance %s: %v", id, err)
+	}
+	defer lf.Close()
+
 	return &DetachedInstance{
 		Id:      id,
-		LogFile: lfp,
-		PidFile: pfp,
+		LogFile: lfl,
+		PidFile: pfl,
 	}, nil
 }
 
@@ -119,4 +125,21 @@ func GetLogFileLocation(id string) (string, error) {
 	lfp := filepath.Join(d, id, InstanceLogFile)
 
 	return lfp, nil
+}
+
+func ShowLogs(id string, follow bool) error {
+	lfl, err := GetLogFileLocation(id)
+	if err != nil {
+		return err
+	}
+
+	t, err := tail.TailFile(lfl, tail.Config{Follow: follow})
+	if err != nil {
+		return err
+	}
+	for line := range t.Lines {
+		fmt.Println(line.Text)
+	}
+
+	return nil
 }
