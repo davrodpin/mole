@@ -35,6 +35,7 @@ func TestServerOptions(t *testing.T) {
 		user          string
 		address       string
 		key           string
+		config        string
 		expected      *Server
 		expectedError error
 	}{
@@ -42,6 +43,7 @@ func TestServerOptions(t *testing.T) {
 			"mole_user",
 			"172.17.0.10:2222",
 			"testdata/.ssh/id_rsa",
+			"testdata/.ssh/config",
 			&Server{
 				Name:    "172.17.0.10",
 				Address: "172.17.0.10:2222",
@@ -53,6 +55,7 @@ func TestServerOptions(t *testing.T) {
 		{
 			"",
 			"test",
+			"",
 			"",
 			&Server{
 				Name:    "test",
@@ -66,6 +69,7 @@ func TestServerOptions(t *testing.T) {
 			"",
 			"test.something",
 			"",
+			"",
 			&Server{
 				Name:    "test.something",
 				Address: "172.17.0.1:2223",
@@ -78,6 +82,7 @@ func TestServerOptions(t *testing.T) {
 			"mole_user",
 			"test:3333",
 			"testdata/.ssh/other_key",
+			"",
 			&Server{
 				Name:    "test",
 				Address: "127.0.0.1:3333",
@@ -90,13 +95,14 @@ func TestServerOptions(t *testing.T) {
 			"",
 			"",
 			"",
+			"",
 			nil,
 			errors.New(HostMissing),
 		},
 	}
 
 	for _, test := range tests {
-		s, err := NewServer(test.user, test.address, test.key, "")
+		s, err := NewServer(test.user, test.address, test.key, "", test.config)
 		if err != nil {
 			if test.expectedError != nil {
 				if test.expectedError.Error() != err.Error() {
@@ -406,7 +412,7 @@ func prepareTunnel(config *tunnelConfig) (tun *Tunnel, ssh net.Listener, hss []*
 		return
 	}
 
-	srv, _ := NewServer("mole", ssh.Addr().String(), "", "")
+	srv, _ := NewServer("mole", ssh.Addr().String(), "", "", "")
 
 	srv.Insecure = config.Insecure
 

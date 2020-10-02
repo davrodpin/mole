@@ -17,16 +17,9 @@ type SSHConfigFile struct {
 }
 
 // NewSSHConfigFile creates a new instance of SSHConfigFile based on the
-// ssh config file from $HOME/.ssh/config.
-func NewSSHConfigFile() (*SSHConfigFile, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	configPath := filepath.Join(home, ".ssh", "config")
-
-	f, err := os.Open(filepath.Clean(configPath))
+// ssh config file from configPath
+func NewSSHConfigFile(configPath SSHConfigFilePath) (*SSHConfigFile, error) {
+	f, err := os.Open(filepath.Clean(string(configPath)))
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +139,31 @@ func (r SSHConfigFile) getKey(host string) string {
 	}
 
 	return ""
+}
+
+// SSHConfigFilePath is a path to the ssh config file
+type SSHConfigFilePath string
+
+// NewSSHConfigFilePath creates a new instance of SSHConfigFilePath
+// from customPath or fallback to NewDefaultSSHConfigFilePath
+func NewSSHConfigFilePath(customPath string) (SSHConfigFilePath, error) {
+	if customPath != "" {
+		return SSHConfigFilePath(customPath), nil
+	}
+
+	return NewDefaultSSHConfigFilePath()
+}
+
+// NewDefaultSSHConfigFilePath creates a new instance of SSHConfigFilePath from $HOME/.ssh/config
+func NewDefaultSSHConfigFilePath() (SSHConfigFilePath, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	configPath := filepath.Join(home, ".ssh", "config")
+
+	return SSHConfigFilePath(configPath), nil
 }
 
 // SSHHost represents a host configuration extracted from a ssh config file.

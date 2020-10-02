@@ -40,7 +40,7 @@ type Server struct {
 // NewServer creates a new instance of Server using $HOME/.ssh/config to
 // resolve the missing connection attributes (e.g. user, hostname, port, key
 // and ssh agent) required to connect to the remote server, if any.
-func NewServer(user, address, key, sshAgent string) (*Server, error) {
+func NewServer(user, address, key, sshAgent, config string) (*Server, error) {
 	var host string
 	var hostname string
 	var port string
@@ -52,7 +52,12 @@ func NewServer(user, address, key, sshAgent string) (*Server, error) {
 		port = args[1]
 	}
 
-	c, err := NewSSHConfigFile()
+	cfgPath, err := NewSSHConfigFilePath(config)
+	if err != nil {
+		return nil, fmt.Errorf("error building ssh configuration file path: %v", err)
+	}
+
+	c, err := NewSSHConfigFile(cfgPath)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, fmt.Errorf("error accessing %s: %v", host, err)
@@ -607,7 +612,12 @@ func buildSSHChannels(serverName, channelType string, source, destination []stri
 func getForward(channelType, serverName string) (*ForwardConfig, error) {
 	var f *ForwardConfig
 
-	cfg, err := NewSSHConfigFile()
+	cfgPath, err := NewDefaultSSHConfigFilePath()
+	if err != nil {
+		return nil, fmt.Errorf("error building ssh configuration file path: %v", err)
+	}
+
+	cfg, err := NewSSHConfigFile(cfgPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading ssh configuration file: %v", err)
 	}

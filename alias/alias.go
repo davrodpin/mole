@@ -46,6 +46,7 @@ type TunnelFlags struct {
 	WaitAndRetry      time.Duration
 	SshAgent          string
 	Timeout           time.Duration
+	Config            string
 
 	// GivenFlags contains list of all flags that were given by the user.
 	GivenFlags []string
@@ -68,6 +69,7 @@ func (tf TunnelFlags) ParseAlias(name string) *Alias {
 		WaitAndRetry:      tf.WaitAndRetry.String(),
 		SshAgent:          tf.SshAgent,
 		Timeout:           tf.Timeout.String(),
+		Config:            tf.Config,
 	}
 }
 
@@ -115,6 +117,7 @@ type Alias struct {
 	WaitAndRetry      string   `toml:"wait-and-retry"`
 	SshAgent          string   `toml:"ssh-agent"`
 	Timeout           string   `toml:"timeout"`
+	Config            string   `toml:"config"`
 }
 
 // ParseTunnelFlags parses an Alias into a TunnelFlags
