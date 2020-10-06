@@ -21,7 +21,7 @@ func Example() {
 		log.Fatalf("error processing server options: %v\n", err)
 	}
 
-	t, err := tunnel.New("local", server, sourceEndpoints, destinationEndpoints)
+	t, err := tunnel.New("local", server, sourceEndpoints, destinationEndpoints, "/home/user/.ssh/key")
 	if err != nil {
 		log.Fatalf("error creating tunnel: %v\n", err)
 	}

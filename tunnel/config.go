@@ -145,17 +145,12 @@ func (r SSHConfigFile) getKey(host string) string {
 type SSHConfigFilePath string
 
 // NewSSHConfigFilePath creates a new instance of SSHConfigFilePath
-// from customPath or fallback to NewDefaultSSHConfigFilePath
+// from customPath or fallback to $HOME/.ssh/config
 func NewSSHConfigFilePath(customPath string) (SSHConfigFilePath, error) {
 	if customPath != "" {
 		return SSHConfigFilePath(customPath), nil
 	}
 
-	return NewDefaultSSHConfigFilePath()
-}
-
-// NewDefaultSSHConfigFilePath creates a new instance of SSHConfigFilePath from $HOME/.ssh/config
-func NewDefaultSSHConfigFilePath() (SSHConfigFilePath, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err

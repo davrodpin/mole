@@ -206,11 +206,11 @@ type Tunnel struct {
 }
 
 // New creates a new instance of Tunnel.
-func New(tunnelType string, server *Server, source, destination []string) (*Tunnel, error) {
+func New(tunnelType string, server *Server, source, destination []string, config string) (*Tunnel, error) {
 	var channels []*SSHChannel
 	var err error
 
-	channels, err = buildSSHChannels(server.Name, tunnelType, source, destination)
+	channels, err = buildSSHChannels(server.Name, tunnelType, source, destination, config)
 	if err != nil {
 		return nil, err
 	}
@@ -548,11 +548,11 @@ func expandAddress(address string) string {
 	return address
 }
 
-func buildSSHChannels(serverName, channelType string, source, destination []string) ([]*SSHChannel, error) {
+func buildSSHChannels(serverName, channelType string, source, destination []string, config string) ([]*SSHChannel, error) {
 	// if source and destination were not given, try to find the addresses from the
 	// SSH configuration file.
 	if len(source) == 0 && len(destination) == 0 {
-		f, err := getForward(channelType, serverName)
+		f, err := getForward(channelType, serverName, config)
 		if err != nil {
 			return nil, err
 		}
@@ -609,10 +609,10 @@ func buildSSHChannels(serverName, channelType string, source, destination []stri
 	return channels, nil
 }
 
-func getForward(channelType, serverName string) (*ForwardConfig, error) {
+func getForward(channelType, serverName string, config string) (*ForwardConfig, error) {
 	var f *ForwardConfig
 
-	cfgPath, err := NewDefaultSSHConfigFilePath()
+	cfgPath, err := NewSSHConfigFilePath(config)
 	if err != nil {
 		return nil, fmt.Errorf("error building ssh configuration file path: %v", err)
 	}

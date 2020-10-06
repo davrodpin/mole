@@ -133,7 +133,7 @@ func start(id string, tunnelFlags *alias.TunnelFlags) {
 		destination[i] = r.String()
 	}
 
-	t, err := tunnel.New(tunnelFlags.TunnelType, s, source, destination)
+	t, err := tunnel.New(tunnelFlags.TunnelType, s, source, destination, tunnelFlags.Config)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
