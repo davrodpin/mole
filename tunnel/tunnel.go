@@ -40,7 +40,7 @@ type Server struct {
 // NewServer creates a new instance of Server using $HOME/.ssh/config to
 // resolve the missing connection attributes (e.g. user, hostname, port, key
 // and ssh agent) required to connect to the remote server, if any.
-func NewServer(user, address, key, sshAgent, config string) (*Server, error) {
+func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 	var host string
 	var hostname string
 	var port string
@@ -50,11 +50,6 @@ func NewServer(user, address, key, sshAgent, config string) (*Server, error) {
 		args := strings.Split(host, ":")
 		host = args[0]
 		port = args[1]
-	}
-
-	cfgPath, err := NewSSHConfigFilePath(config)
-	if err != nil {
-		return nil, fmt.Errorf("error building ssh configuration file path: %v", err)
 	}
 
 	c, err := NewSSHConfigFile(cfgPath)
@@ -548,11 +543,11 @@ func expandAddress(address string) string {
 	return address
 }
 
-func buildSSHChannels(serverName, channelType string, source, destination []string, config string) ([]*SSHChannel, error) {
+func buildSSHChannels(serverName, channelType string, source, destination []string, cfgPath string) ([]*SSHChannel, error) {
 	// if source and destination were not given, try to find the addresses from the
 	// SSH configuration file.
 	if len(source) == 0 && len(destination) == 0 {
-		f, err := getForward(channelType, serverName, config)
+		f, err := getForward(channelType, serverName, cfgPath)
 		if err != nil {
 			return nil, err
 		}
@@ -609,13 +604,8 @@ func buildSSHChannels(serverName, channelType string, source, destination []stri
 	return channels, nil
 }
 
-func getForward(channelType, serverName string, config string) (*ForwardConfig, error) {
+func getForward(channelType, serverName string, cfgPath string) (*ForwardConfig, error) {
 	var f *ForwardConfig
-
-	cfgPath, err := NewSSHConfigFilePath(config)
-	if err != nil {
-		return nil, fmt.Errorf("error building ssh configuration file path: %v", err)
-	}
 
 	cfg, err := NewSSHConfigFile(cfgPath)
 	if err != nil {

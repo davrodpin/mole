@@ -10,6 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const homeVar = "$HOME"
+
 // SSHConfigFile finds specific attributes of a ssh server configured on a
 // ssh config file.
 type SSHConfigFile struct {
@@ -18,8 +20,17 @@ type SSHConfigFile struct {
 
 // NewSSHConfigFile creates a new instance of SSHConfigFile based on the
 // ssh config file from configPath
-func NewSSHConfigFile(configPath SSHConfigFilePath) (*SSHConfigFile, error) {
-	f, err := os.Open(filepath.Clean(string(configPath)))
+func NewSSHConfigFile(configPath string) (*SSHConfigFile, error) {
+	if strings.Contains(configPath, homeVar) {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+
+		configPath = strings.ReplaceAll(configPath, homeVar, home)
+	}
+
+	f, err := os.Open(filepath.Clean(configPath))
 	if err != nil {
 		return nil, err
 	}
@@ -139,26 +150,6 @@ func (r SSHConfigFile) getKey(host string) string {
 	}
 
 	return ""
-}
-
-// SSHConfigFilePath is a path to the ssh config file
-type SSHConfigFilePath string
-
-// NewSSHConfigFilePath creates a new instance of SSHConfigFilePath
-// from customPath or fallback to $HOME/.ssh/config
-func NewSSHConfigFilePath(customPath string) (SSHConfigFilePath, error) {
-	if customPath != "" {
-		return SSHConfigFilePath(customPath), nil
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	configPath := filepath.Join(home, ".ssh", "config")
-
-	return SSHConfigFilePath(configPath), nil
 }
 
 // SSHHost represents a host configuration extracted from a ssh config file.

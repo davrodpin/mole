@@ -52,7 +52,7 @@ provide 0 to never give up or a negative number to disable`)
 	cmd.Flags().DurationVarP(&flags.WaitAndRetry, "retry-wait", "w", 3*time.Second, "time to wait before trying to reconnect to ssh server")
 	cmd.Flags().StringVarP(&flags.SshAgent, "ssh-agent", "A", "", "unix socket to communicate with a ssh agent")
 	cmd.Flags().DurationVarP(&flags.Timeout, "timeout", "t", 3*time.Second, "ssh server connection timeout")
-	cmd.Flags().StringVarP(&flags.Config, "config", "c", "", "set config file path")
+	cmd.Flags().StringVarP(&flags.Config, "config", "c", "$HOME/.ssh/config", "set config file path")
 
 	err := cmd.MarkFlagRequired("server")
 	if err != nil {
