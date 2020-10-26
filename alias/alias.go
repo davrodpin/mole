@@ -130,6 +130,7 @@ func (a Alias) ParseTunnelFlags() (*TunnelFlags, error) {
 	tf.Verbose = a.Verbose
 	tf.Insecure = a.Insecure
 	tf.Detach = a.Detach
+	tf.Config = a.Config
 
 	srcl := AddressInputList{}
 	for _, src := range a.Source {
