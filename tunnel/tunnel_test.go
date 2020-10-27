@@ -26,6 +26,7 @@ var keyPath string
 var encryptedKeyPath string
 var publicKeyPath string
 var knownHostsPath string
+var configPath string
 
 func TestServerOptions(t *testing.T) {
 	k1, _ := NewPemKey("testdata/.ssh/id_rsa", "")
@@ -35,6 +36,7 @@ func TestServerOptions(t *testing.T) {
 		user          string
 		address       string
 		key           string
+		config        string
 		expected      *Server
 		expectedError error
 	}{
@@ -42,6 +44,7 @@ func TestServerOptions(t *testing.T) {
 			"mole_user",
 			"172.17.0.10:2222",
 			"testdata/.ssh/id_rsa",
+			"testdata/.ssh/config",
 			&Server{
 				Name:    "172.17.0.10",
 				Address: "172.17.0.10:2222",
@@ -54,6 +57,7 @@ func TestServerOptions(t *testing.T) {
 			"",
 			"test",
 			"",
+			"testdata/.ssh/config",
 			&Server{
 				Name:    "test",
 				Address: "127.0.0.1:2222",
@@ -66,6 +70,7 @@ func TestServerOptions(t *testing.T) {
 			"",
 			"test.something",
 			"",
+			"testdata/.ssh/config",
 			&Server{
 				Name:    "test.something",
 				Address: "172.17.0.1:2223",
@@ -78,6 +83,7 @@ func TestServerOptions(t *testing.T) {
 			"mole_user",
 			"test:3333",
 			"testdata/.ssh/other_key",
+			"testdata/.ssh/config",
 			&Server{
 				Name:    "test",
 				Address: "127.0.0.1:3333",
@@ -90,13 +96,14 @@ func TestServerOptions(t *testing.T) {
 			"",
 			"",
 			"",
+			"testdata/.ssh/config",
 			nil,
 			errors.New(HostMissing),
 		},
 	}
 
 	for _, test := range tests {
-		s, err := NewServer(test.user, test.address, test.key, "")
+		s, err := NewServer(test.user, test.address, test.key, "", test.config)
 		if err != nil {
 			if test.expectedError != nil {
 				if test.expectedError.Error() != err.Error() {
@@ -286,6 +293,7 @@ func TestBuildSSHChannels(t *testing.T) {
 		serverName    string
 		source        []string
 		destination   []string
+		config        string
 		expected      int
 		expectedError error
 	}{
@@ -293,6 +301,7 @@ func TestBuildSSHChannels(t *testing.T) {
 			serverName:    "test",
 			source:        []string{":3360"},
 			destination:   []string{":3360"},
+			config:        "testdata/.ssh/config",
 			expected:      1,
 			expectedError: nil,
 		},
@@ -300,6 +309,7 @@ func TestBuildSSHChannels(t *testing.T) {
 			serverName:    "test",
 			source:        []string{":3360", ":8080"},
 			destination:   []string{":3360", ":8080"},
+			config:        "testdata/.ssh/config",
 			expected:      2,
 			expectedError: nil,
 		},
@@ -307,6 +317,7 @@ func TestBuildSSHChannels(t *testing.T) {
 			serverName:    "test",
 			source:        []string{},
 			destination:   []string{":3360"},
+			config:        "testdata/.ssh/config",
 			expected:      1,
 			expectedError: nil,
 		},
@@ -314,6 +325,7 @@ func TestBuildSSHChannels(t *testing.T) {
 			serverName:    "test",
 			source:        []string{":3360"},
 			destination:   []string{":3360", ":8080"},
+			config:        "testdata/.ssh/config",
 			expected:      2,
 			expectedError: nil,
 		},
@@ -321,6 +333,7 @@ func TestBuildSSHChannels(t *testing.T) {
 			serverName:    "hostWithLocalForward",
 			source:        []string{},
 			destination:   []string{},
+			config:        "testdata/.ssh/config",
 			expected:      1,
 			expectedError: nil,
 		},
@@ -328,6 +341,7 @@ func TestBuildSSHChannels(t *testing.T) {
 			serverName:    "test",
 			source:        []string{":3360", ":8080"},
 			destination:   []string{":3360"},
+			config:        "testdata/.ssh/config",
 			expected:      1,
 			expectedError: nil,
 		},
@@ -335,13 +349,14 @@ func TestBuildSSHChannels(t *testing.T) {
 			serverName:    "test",
 			source:        []string{":3360"},
 			destination:   []string{},
+			config:        "testdata/.ssh/config",
 			expected:      0,
 			expectedError: fmt.Errorf(NoDestinationGiven),
 		},
 	}
 
 	for testId, test := range tests {
-		sshChannels, err := buildSSHChannels(test.serverName, "local", test.source, test.destination)
+		sshChannels, err := buildSSHChannels(test.serverName, "local", test.source, test.destination, test.config)
 		if err != nil {
 			if test.expectedError != nil {
 				if test.expectedError.Error() != err.Error() {
@@ -406,7 +421,7 @@ func prepareTunnel(config *tunnelConfig) (tun *Tunnel, ssh net.Listener, hss []*
 		return
 	}
 
-	srv, _ := NewServer("mole", ssh.Addr().String(), "", "")
+	srv, _ := NewServer("mole", ssh.Addr().String(), "", "", "testdata/.ssh/config")
 
 	srv.Insecure = config.Insecure
 
@@ -437,7 +452,7 @@ func prepareTunnel(config *tunnelConfig) (tun *Tunnel, ssh net.Listener, hss []*
 		hss = append(hss, hs)
 	}
 
-	tun, _ = New(config.TunnelType, srv, source, destination)
+	tun, _ = New(config.TunnelType, srv, source, destination, configPath)
 	tun.ConnectionRetries = config.ConnectionRetries
 	tun.WaitAndRetry = 3 * time.Second
 	tun.KeepAliveInterval = 10 * time.Second
@@ -464,6 +479,7 @@ func prepareTestEnv() error {
 	encryptedKeyPath = filepath.Join(testDir, "id_rsa_encrypted")
 	publicKeyPath = filepath.Join(testDir, "id_rsa.pub")
 	knownHostsPath = filepath.Join(testDir, "known_hosts")
+	configPath = filepath.Join(testDir, "config")
 	sshDir = testDir
 
 	fixtures := []map[string]string{

@@ -31,6 +31,7 @@ func TestParseTunnelFlags(t *testing.T) {
 		waitAndRetry      string
 		sshAgent          string
 		timeout           string
+		config            string
 	}{
 		{
 			"local",
@@ -46,6 +47,7 @@ func TestParseTunnelFlags(t *testing.T) {
 			"5s",
 			"path/to/ssh/agent",
 			"1m0s",
+			"/home/user/.ssh/config",
 		},
 		{
 			"local",
@@ -61,6 +63,7 @@ func TestParseTunnelFlags(t *testing.T) {
 			"5s",
 			"path/to/ssh/agent",
 			"1m0s",
+			"/home/user/.ssh/config",
 		},
 	}
 
@@ -79,6 +82,7 @@ func TestParseTunnelFlags(t *testing.T) {
 			WaitAndRetry:      test.waitAndRetry,
 			SshAgent:          test.sshAgent,
 			Timeout:           test.timeout,
+			Config:            test.config,
 		}
 
 		tf, err := ai.ParseTunnelFlags()
@@ -100,6 +104,10 @@ func TestParseTunnelFlags(t *testing.T) {
 
 		if test.detach != tf.Detach {
 			t.Errorf("detach doesn't match on test %d: expected: %t, value: %t", id, test.detach, tf.Detach)
+		}
+
+		if test.config != tf.Config {
+			t.Errorf("config doesn't match on test %d: expected: %s, value: %s", id, test.config, tf.Config)
 		}
 
 		for i, tsrc := range test.source {
@@ -264,6 +272,7 @@ func TestAliasMerge(t *testing.T) {
 				WaitAndRetry:      "10s",
 				SshAgent:          "path/to/sshagent",
 				Timeout:           "3s",
+				Config:            "/home/user/.ssh/config",
 			},
 			&alias.TunnelFlags{
 				Verbose:           true,
@@ -276,6 +285,7 @@ func TestAliasMerge(t *testing.T) {
 				KeepAliveInterval: keepAliveInterval,
 				ConnectionRetries: 10,
 				GivenFlags:        []string{"verbose", "insecure", "detach"},
+				Config:            "/home/user/.ssh/config",
 			},
 			alias.Alias{
 				Verbose:  true,
@@ -297,6 +307,7 @@ func TestAliasMerge(t *testing.T) {
 				WaitAndRetry:      "10s",
 				SshAgent:          "path/to/sshagent",
 				Timeout:           "3s",
+				Config:            "/home/user/.ssh/config",
 			},
 			&alias.TunnelFlags{
 				Verbose:           false,
@@ -309,6 +320,7 @@ func TestAliasMerge(t *testing.T) {
 				KeepAliveInterval: keepAliveInterval,
 				ConnectionRetries: 10,
 				GivenFlags:        []string{},
+				Config:            "/home/user/.ssh/config",
 			},
 			alias.Alias{
 				Verbose:  true,
@@ -355,6 +367,7 @@ func TestParseAlias(t *testing.T) {
 		WaitAndRetry:      war,
 		SshAgent:          "path/to/sshagent",
 		Timeout:           tim,
+		Config:            "/home/user/.ssh/config",
 	}
 
 	al := flags.ParseAlias("aliasName")
@@ -373,6 +386,10 @@ func TestParseAlias(t *testing.T) {
 
 	if flags.Detach != al.Detach {
 		t.Errorf("detach does not match: expected: %t, value: %t", flags.Detach, al.Detach)
+	}
+
+	if flags.Config != al.Config {
+		t.Errorf("config does not match: expected: %s, value: %s", flags.Config, al.Config)
 	}
 
 	if !reflect.DeepEqual(flags.Source.List(), al.Source) {
@@ -429,6 +446,7 @@ func addAlias() (*alias.Alias, error) {
 		WaitAndRetry:      "10s",
 		SshAgent:          "path/to/agent",
 		Timeout:           "1m",
+		Config:            "/home/user/.ssh/config",
 	}
 
 	err := alias.Add(a)

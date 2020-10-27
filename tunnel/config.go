@@ -10,6 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const homeVar = "$HOME"
+
 // SSHConfigFile finds specific attributes of a ssh server configured on a
 // ssh config file.
 type SSHConfigFile struct {
@@ -17,14 +19,16 @@ type SSHConfigFile struct {
 }
 
 // NewSSHConfigFile creates a new instance of SSHConfigFile based on the
-// ssh config file from $HOME/.ssh/config.
-func NewSSHConfigFile() (*SSHConfigFile, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
+// ssh config file from configPath
+func NewSSHConfigFile(configPath string) (*SSHConfigFile, error) {
+	if strings.Contains(configPath, homeVar) {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
 
-	configPath := filepath.Join(home, ".ssh", "config")
+		configPath = strings.ReplaceAll(configPath, homeVar, home)
+	}
 
 	f, err := os.Open(filepath.Clean(configPath))
 	if err != nil {

@@ -52,6 +52,7 @@ provide 0 to never give up or a negative number to disable`)
 	cmd.Flags().DurationVarP(&flags.WaitAndRetry, "retry-wait", "w", 3*time.Second, "time to wait before trying to reconnect to ssh server")
 	cmd.Flags().StringVarP(&flags.SshAgent, "ssh-agent", "A", "", "unix socket to communicate with a ssh agent")
 	cmd.Flags().DurationVarP(&flags.Timeout, "timeout", "t", 3*time.Second, "ssh server connection timeout")
+	cmd.Flags().StringVarP(&flags.Config, "config", "c", "$HOME/.ssh/config", "set config file path")
 
 	err := cmd.MarkFlagRequired("server")
 	if err != nil {
@@ -92,7 +93,7 @@ func start(id string, tunnelFlags *alias.TunnelFlags) {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	s, err := tunnel.NewServer(tunnelFlags.Server.User, tunnelFlags.Server.Address(), tunnelFlags.Key, tunnelFlags.SshAgent)
+	s, err := tunnel.NewServer(tunnelFlags.Server.User, tunnelFlags.Server.Address(), tunnelFlags.Key, tunnelFlags.SshAgent, tunnelFlags.Config)
 	if err != nil {
 		log.Errorf("error processing server options: %v\n", err)
 		os.Exit(1)
@@ -132,7 +133,7 @@ func start(id string, tunnelFlags *alias.TunnelFlags) {
 		destination[i] = r.String()
 	}
 
-	t, err := tunnel.New(tunnelFlags.TunnelType, s, source, destination)
+	t, err := tunnel.New(tunnelFlags.TunnelType, s, source, destination, tunnelFlags.Config)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
