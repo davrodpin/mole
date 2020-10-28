@@ -100,7 +100,7 @@ func NewDetachedInstance(id string) (*DetachedInstance, error) {
 	}, nil
 }
 
-// GetPidFileLocation return the file system location of the application
+// GetPidFileLocation returns the file system location of the application
 // instance in the file system.
 func GetPidFileLocation(id string) (string, error) {
 	d, err := fsutils.Dir()
@@ -113,7 +113,7 @@ func GetPidFileLocation(id string) (string, error) {
 	return pfp, nil
 }
 
-// GetLogFileLocation return the file system location of the file where all
+// GetLogFileLocation returns the file system location of the file where all
 // log messages are saved for an specific detached application instance.
 func GetLogFileLocation(id string) (string, error) {
 	d, err := fsutils.Dir()
@@ -126,6 +126,7 @@ func GetLogFileLocation(id string) (string, error) {
 	return lfp, nil
 }
 
+// ShowLogs displays all logs messages from a detached applications instance.
 func ShowLogs(id string, follow bool) error {
 	lfl, err := GetLogFileLocation(id)
 	if err != nil {
