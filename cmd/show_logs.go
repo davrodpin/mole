@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/davrodpin/mole/app"
+	"github.com/davrodpin/mole/mole"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -23,7 +23,7 @@ var (
 			return nil
 		},
 		Run: func(cmd *cobra.Command, arg []string) {
-			err := app.ShowLogs(id, follow)
+			err := mole.ShowLogs(id, follow)
 			if err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"id": id,

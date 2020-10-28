@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/davrodpin/mole/fsutils"
@@ -30,77 +29,6 @@ const (
 `
 )
 
-// TunnelFlags is a struct that holds all flags required to establish a ssh
-// port forwarding tunnel.
-type TunnelFlags struct {
-	TunnelType        string
-	Verbose           bool
-	Insecure          bool
-	Detach            bool
-	Source            AddressInputList
-	Destination       AddressInputList
-	Server            AddressInput
-	Key               string
-	KeepAliveInterval time.Duration
-	ConnectionRetries int
-	WaitAndRetry      time.Duration
-	SshAgent          string
-	Timeout           time.Duration
-	Config            string
-
-	// GivenFlags contains list of all flags that were given by the user.
-	GivenFlags []string
-}
-
-// ParseAlias translates a TunnelFlags object to an Alias object
-func (tf TunnelFlags) ParseAlias(name string) *Alias {
-	return &Alias{
-		Name:              name,
-		TunnelType:        tf.TunnelType,
-		Verbose:           tf.Verbose,
-		Insecure:          tf.Insecure,
-		Detach:            tf.Detach,
-		Source:            tf.Source.List(),
-		Destination:       tf.Destination.List(),
-		Server:            tf.Server.String(),
-		Key:               tf.Key,
-		KeepAliveInterval: tf.KeepAliveInterval.String(),
-		ConnectionRetries: tf.ConnectionRetries,
-		WaitAndRetry:      tf.WaitAndRetry.String(),
-		SshAgent:          tf.SshAgent,
-		Timeout:           tf.Timeout.String(),
-		Config:            tf.Config,
-	}
-}
-
-// FlagGiven tells if a specific flag was given by the user through CLI.
-func (tf TunnelFlags) FlagGiven(flag string) bool {
-	for _, f := range tf.GivenFlags {
-		if flag == f {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (tf TunnelFlags) String() string {
-	return fmt.Sprintf("[verbose: %t, insecure: %t, detach: %t, source: %s, destination: %s, server: %s, key: %s, keep-alive-interval: %s, connection-retries: %d, wait-and-retry: %s, ssh-agent: %s, timeout: %s]",
-		tf.Verbose,
-		tf.Insecure,
-		tf.Detach,
-		tf.Source,
-		tf.Destination,
-		tf.Server,
-		tf.Key,
-		tf.KeepAliveInterval,
-		tf.ConnectionRetries,
-		tf.WaitAndRetry,
-		tf.SshAgent,
-		tf.Timeout,
-	)
-}
-
 // Alias holds all attributes required to start a ssh port forwarding tunnel.
 type Alias struct {
 	Name              string   `toml:"-"`
@@ -117,90 +45,11 @@ type Alias struct {
 	WaitAndRetry      string   `toml:"wait-and-retry"`
 	SshAgent          string   `toml:"ssh-agent"`
 	Timeout           string   `toml:"timeout"`
-	Config            string   `toml:"config"`
-}
-
-// ParseTunnelFlags parses an Alias into a TunnelFlags
-func (a Alias) ParseTunnelFlags() (*TunnelFlags, error) {
-	var err error
-
-	tf := &TunnelFlags{}
-
-	tf.TunnelType = a.TunnelType
-	tf.Verbose = a.Verbose
-	tf.Insecure = a.Insecure
-	tf.Detach = a.Detach
-	tf.Config = a.Config
-
-	srcl := AddressInputList{}
-	for _, src := range a.Source {
-		err = srcl.Set(src)
-		if err != nil {
-			return nil, err
-		}
-	}
-	tf.Source = srcl
-
-	dstl := AddressInputList{}
-	for _, dst := range a.Destination {
-		err = dstl.Set(dst)
-		if err != nil {
-			return nil, err
-		}
-	}
-	tf.Destination = dstl
-
-	srv := AddressInput{}
-	err = srv.Set(a.Server)
-	if err != nil {
-		return nil, err
-	}
-	tf.Server = srv
-
-	tf.Key = a.Key
-
-	kai, err := time.ParseDuration(a.KeepAliveInterval)
-	if err != nil {
-		return nil, err
-	}
-	tf.KeepAliveInterval = kai
-
-	tf.ConnectionRetries = a.ConnectionRetries
-
-	war, err := time.ParseDuration(a.WaitAndRetry)
-	if err != nil {
-		return nil, err
-	}
-	tf.WaitAndRetry = war
-
-	tf.SshAgent = a.SshAgent
-
-	tim, err := time.ParseDuration(a.Timeout)
-	if err != nil {
-		return nil, err
-	}
-	tf.Timeout = tim
-
-	return tf, nil
-}
-
-// Merge overwrites certain Alias attributes based on the given TunnelFlags.
-func (a *Alias) Merge(tunnelFlags *TunnelFlags) {
-	if tunnelFlags.FlagGiven("verbose") {
-		a.Verbose = tunnelFlags.Verbose
-	}
-
-	if tunnelFlags.FlagGiven("insecure") {
-		a.Insecure = tunnelFlags.Insecure
-	}
-
-	if tunnelFlags.FlagGiven("detach") {
-		a.Detach = tunnelFlags.Detach
-	}
+	SshConfig         string   `toml:"config"`
 }
 
 func (a Alias) String() string {
-	return fmt.Sprintf("[verbose: %t, insecure: %t, detach: %t, source: %s, destination: %s, server: %s, key: %s, keep-alive-interval: %s, connection-retries: %d, wait-and-retry: %s, ssh-agent: %s, timeout: %s]",
+	return fmt.Sprintf("[verbose: %t, insecure: %t, detach: %t, source: %s, destination: %s, server: %s, key: %s, keep-alive-interval: %s, connection-retries: %d, wait-and-retry: %s, ssh-agent: %s, timeout: %s, config: %s]",
 		a.Verbose,
 		a.Insecure,
 		a.Detach,
@@ -213,6 +62,7 @@ func (a Alias) String() string {
 		a.WaitAndRetry,
 		a.SshAgent,
 		a.Timeout,
+		a.SshConfig,
 	)
 }
 

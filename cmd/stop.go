@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 
+	"github.com/davrodpin/mole/mole"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -18,12 +20,14 @@ var (
 				return errors.New("alias name or id not provided")
 			}
 
-			id = args[0]
+			conf.Id = args[0]
 
 			return nil
 		},
 		Run: func(cmd *cobra.Command, arg []string) {
-			err := stop(id)
+			c := mole.New(conf)
+
+			err := c.Stop()
 			if err != nil {
 				log.WithError(err).Error("error stopping detached mole instance")
 				os.Exit(1)
