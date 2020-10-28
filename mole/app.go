@@ -1,4 +1,4 @@
-package app
+package mole
 
 import (
 	"fmt"
@@ -62,7 +62,6 @@ func NewDetachedInstance(id string) (*DetachedInstance, error) {
 	}
 
 	if _, err = os.Stat(pfl); !os.IsNotExist(err) {
-		_, err = os.Stat(pfl)
 		data, err := ioutil.ReadFile(pfl)
 		if err != nil {
 			return nil, fmt.Errorf("something went wrong while reading from pid file %s: %v", pfl, err)

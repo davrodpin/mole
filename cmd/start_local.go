@@ -3,6 +3,8 @@ package cmd
 import (
 	"os"
 
+	"github.com/davrodpin/mole/mole"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -20,18 +22,23 @@ Source endpoints are addresses on the same machine where mole is getting execute
 Destination endpoints are adrresess that can be reached from the jump server.
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
-		tunnelFlags.TunnelType = "local"
+		conf.TunnelType = "local"
 		return nil
 	},
 	Run: func(cmd *cobra.Command, arg []string) {
-		start("", tunnelFlags)
+		client := mole.New(conf)
+
+		err := client.Start()
+		if err != nil {
+			os.Exit(1)
+		}
 	},
 }
 
 func init() {
 	var err error
 
-	err = bindFlags(tunnelFlags, localCmd)
+	err = bindFlags(conf, localCmd)
 	if err != nil {
 		log.WithError(err).Error("error parsing command line arguments")
 		os.Exit(1)

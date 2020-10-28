@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+const (
+	AddressFormat = "%s:%s"
+)
+
 var re = regexp.MustCompile(`(?P<user>.+@)?(?P<host>[[:alpha:][:digit:]\_\-\.]+)?(?P<port>:[0-9]+)?`)
 
 // AddressInput holds information about a host
@@ -49,7 +53,7 @@ func (ai AddressInput) Address() string {
 		return ai.Host
 	}
 
-	return fmt.Sprintf("%s:%s", ai.Host, ai.Port)
+	return fmt.Sprintf(AddressFormat, ai.Host, ai.Port)
 }
 
 func parseServerInput(input string) map[string]string {

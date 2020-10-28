@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/davrodpin/mole/alias"
+	"github.com/davrodpin/mole/mole"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -29,26 +31,34 @@ same name stored in the alias.
 	Run: func(cmd *cobra.Command, arg []string) {
 		var err error
 
-		a, err := alias.Get(aliasName)
+		al, err := alias.Get(aliasName)
 		if err != nil {
 			log.WithError(err).Errorf("failed to start tunnel from alias %s", aliasName)
 			os.Exit(1)
 		}
 
-		a.Merge(tunnelFlags)
-
-		err = startFromAlias(aliasName, a)
+		err = conf.Merge(al, givenFlags)
 		if err != nil {
 			log.WithError(err).Errorf("failed to start tunnel from alias %s", aliasName)
+			os.Exit(1)
+		}
+
+		client := mole.New(conf)
+
+		err = client.Start()
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"alias": aliasName,
+			}).Errorf("failed to start tunnel from alias %s", aliasName)
 			os.Exit(1)
 		}
 	},
 }
 
 func init() {
-	startAliasCmd.Flags().BoolVarP(&tunnelFlags.Verbose, "verbose", "v", false, "increase log verbosity")
-	startAliasCmd.Flags().BoolVarP(&tunnelFlags.Insecure, "insecure", "i", false, "skip host key validation when connecting to ssh server")
-	startAliasCmd.Flags().BoolVarP(&tunnelFlags.Detach, "detach", "x", false, "run process in background")
+	startAliasCmd.Flags().BoolVarP(&conf.Verbose, "verbose", "v", false, "increase log verbosity")
+	startAliasCmd.Flags().BoolVarP(&conf.Insecure, "insecure", "i", false, "skip host key validation when connecting to ssh server")
+	startAliasCmd.Flags().BoolVarP(&conf.Detach, "detach", "x", false, "run process in background")
 
 	startCmd.AddCommand(startAliasCmd)
 }

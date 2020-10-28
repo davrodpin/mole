@@ -1,4 +1,4 @@
-package app_test
+package mole_test
 
 import (
 	"io/ioutil"
@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/davrodpin/mole/app"
+	"github.com/davrodpin/mole/mole"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 func TestDetachedInstanceFileLocations(t *testing.T) {
 	id := "TestDetachedInstanceFileLocations"
 
-	di, err := app.NewDetachedInstance(id)
+	di, err := mole.NewDetachedInstance(id)
 	if err != nil {
 		t.Errorf("error creating a new detached instance: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestDetachedInstanceFileLocations(t *testing.T) {
 		t.Errorf("pid file does not exist: %v", err)
 	}
 
-	lfl, err := app.GetLogFileLocation(id)
+	lfl, err := mole.GetLogFileLocation(id)
 	if err != nil {
 		t.Errorf("error retrieving log file location: %v", err)
 	}
@@ -45,7 +45,7 @@ func TestDetachedInstanceFileLocations(t *testing.T) {
 
 func TestDetachedInstanceGeneratedId(t *testing.T) {
 
-	di, err := app.NewDetachedInstance("")
+	di, err := mole.NewDetachedInstance("")
 	if err != nil {
 		t.Errorf("error creating a new detached instance: %v", err)
 	}
@@ -59,10 +59,10 @@ func TestDetachedInstanceAlreadyRunning(t *testing.T) {
 	id := "TestDetachedInstanceAlreadyRunning"
 
 	os.MkdirAll(filepath.Join(home, ".mole", id), 0755)
-	pidFileLocation := filepath.Join(home, ".mole", id, app.InstancePidFile)
+	pidFileLocation := filepath.Join(home, ".mole", id, mole.InstancePidFile)
 	ioutil.WriteFile(pidFileLocation, []byte("1234"), 0644)
 
-	_, err := app.NewDetachedInstance(id)
+	_, err := mole.NewDetachedInstance(id)
 
 	if err == nil {
 		t.Errorf("error expected but got nil")
@@ -74,10 +74,10 @@ func TestShowLogs(t *testing.T) {
 	id := "TestDetachedInstanceAlreadyRunning"
 
 	os.MkdirAll(filepath.Join(home, ".mole", id), 0755)
-	logFileLocation := filepath.Join(home, ".mole", id, app.InstanceLogFile)
+	logFileLocation := filepath.Join(home, ".mole", id, mole.InstanceLogFile)
 	ioutil.WriteFile(logFileLocation, []byte("first log message\nsecond log message\nthird log message\n"), 0644)
 
-	err := app.ShowLogs(id, false)
+	err := mole.ShowLogs(id, false)
 
 	if err != nil {
 		t.Errorf("error showing logs: %v", err)
