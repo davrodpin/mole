@@ -6,32 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/BurntSushi/toml"
 	"github.com/davrodpin/mole/fsutils"
 )
 
-const (
-	ShowTemplate = `{{.Name}}
-              verbose: {{.Verbose}}
-             insecure: {{.Insecure}}
-               detach: {{.Detach}}
-               source: {{ StringsJoin .Source ", " }}
-          destination: {{ StringsJoin .Destination ", " }}
-               server: {{.Server}}
-                  key: {{.Key}}
-  keep alive interval: {{.KeepAliveInterval}}
-   connection retries: {{.ConnectionRetries}}
-       wait and retry: {{.WaitAndRetry}}
-            ssh agent: {{.SshAgent}}
-              timeout: {{.Timeout}}
-`
-)
-
 // Alias holds all attributes required to start a ssh port forwarding tunnel.
 type Alias struct {
-	Name              string   `toml:"-"`
+	Name              string   `toml:"name"`
 	TunnelType        string   `toml:"type"`
 	Verbose           bool     `toml:"verbose"`
 	Insecure          bool     `toml:"insecure"`
@@ -114,14 +96,19 @@ func Delete(alias string) error {
 
 // Show displays the configuration parameters for the given alias name.
 func Show(aliasName string) (string, error) {
-	mp, err := fsutils.Dir()
+	a, err := Get(aliasName)
 	if err != nil {
+		return "", fmt.Errorf("could not show alias %s configuration: %v", aliasName, err)
+	}
+
+	var aliases bytes.Buffer
+	e := toml.NewEncoder(&aliases)
+
+	if err = e.Encode(a); err != nil {
 		return "", err
 	}
 
-	path := filepath.Join(mp, fmt.Sprintf("%s.toml", aliasName))
-
-	return showAlias(path)
+	return aliases.String(), nil
 }
 
 // ShowAll displays the configuration parameters for all persisted aliases.
@@ -131,18 +118,21 @@ func ShowAll() (string, error) {
 		return "", err
 	}
 
-	var aliases bytes.Buffer
+	aliases := aliases{}
+	aliases.Aliases = make(map[string]*Alias)
 
 	err = filepath.Walk(mp, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			ext := filepath.Ext(path)
 			if ext == ".toml" {
-				al, err := showAlias(path)
+				var err error
+				an := strings.TrimSuffix(filepath.Base(path), ".toml")
+				al, err := Get(an)
 				if err != nil {
 					return err
 				}
 
-				aliases.WriteString(al)
+				aliases.Aliases[al.Name] = al
 			}
 		}
 		return nil
@@ -151,7 +141,15 @@ func ShowAll() (string, error) {
 		return "", err
 	}
 
-	return aliases.String(), nil
+	var buff bytes.Buffer
+
+	e := toml.NewEncoder(&buff)
+
+	if err = e.Encode(aliases); err != nil {
+		return "", err
+	}
+
+	return buff.String(), nil
 }
 
 // Get returns an alias previously created
@@ -176,28 +174,6 @@ func Get(aliasName string) (*Alias, error) {
 	return a, nil
 }
 
-func showAlias(filePath string) (string, error) {
-	an := strings.TrimSuffix(filepath.Base(filePath), ".toml")
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return "", fmt.Errorf("alias %s does not exist", an)
-	}
-
-	var aliases bytes.Buffer
-
-	a, err := Get(an)
-	if err != nil {
-		return "", fmt.Errorf("could not show alias configuration %s: %v", filePath, err)
-	}
-
-	t := template.Must(template.New("aliases").Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(ShowTemplate))
-	if err := t.Execute(&aliases, a); err != nil {
-		return "", err
-	}
-
-	return aliases.String(), nil
-}
-
 func createDir() (string, error) {
 	mp, err := fsutils.Dir()
 	if err != nil {
@@ -214,4 +190,9 @@ func createDir() (string, error) {
 	}
 
 	return mp, nil
+}
+
+//FIXME terrible struct name. Change it.
+type aliases struct {
+	Aliases map[string]*Alias `toml:"aliases"`
 }

@@ -1,0 +1,13 @@
+type = "local"
+verbose = false
+insecure = false
+detach = false
+source = [":8081"]
+destination = ["172.17.0.100:80"]
+server = "mole@127.0.0.1:22122"
+key = "test-env/ssh-server/keys/key"
+keep-alive-interval = "10s"
+connection-retries = 3
+wait-and-retry = "3s"
+ssh-agent = ""
+timeout = "3s"
