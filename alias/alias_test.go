@@ -1,32 +1,29 @@
 package alias_test
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/davrodpin/mole/alias"
 )
 
-func TestAddThenGetThenDeleteAlias(t *testing.T) {
-	dir, err := setAliasDirectory()
-	if err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
-	defer os.RemoveAll(dir)
+const (
+	FixtureDir = "./testdata"
+)
 
+var home string
+
+func TestAddThenGetThenDeleteAlias(t *testing.T) {
 	expectedAlias, err := addAlias()
 	if err != nil {
 		t.Errorf("error creating alias file %v", err)
 	}
 
-	expectedAliasFilePath := filepath.Join(dir, ".mole", fmt.Sprintf("%s.toml", expectedAlias.Name))
+	expectedAliasFilePath := filepath.Join(home, ".mole", fmt.Sprintf("%s.toml", expectedAlias.Name))
 
 	if _, err := os.Stat(expectedAliasFilePath); os.IsNotExist(err) {
 		t.Errorf("alias file could not be found after the attempt to create it")
@@ -53,59 +50,64 @@ func TestAddThenGetThenDeleteAlias(t *testing.T) {
 }
 
 func TestShow(t *testing.T) {
-	dir, err := setAliasDirectory()
+	ids := []string{"test-env"}
+	fx, err := filepath.Abs(FixtureDir)
 	if err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
-	defer os.RemoveAll(dir)
-
-	a, err := addAlias()
-	if err != nil {
-		t.Errorf("error creating alias file %v", err)
-	}
-	defer alias.Delete(a.Name)
-
-	showOutput, err := alias.Show(a.Name)
-	if err != nil {
-		t.Errorf("error while showing all aliases")
+		t.Errorf("error while loading data for TestShow: %v", err)
 	}
 
-	expectedShowOutput, err := generateAliasShowOutput(a)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
+	for _, id := range ids {
+		fixturePath := filepath.Join(fx, fmt.Sprintf("show.alias.%s.fixture", id))
+		expectedBytes, err := ioutil.ReadFile(fixturePath)
+		if err != nil {
+			t.Errorf("error while loading data for TestShow: %v", err)
+		}
 
-	if expectedShowOutput != showOutput {
-		t.Errorf("ShowAll output format has changed")
+		expected := string(expectedBytes)
+
+		output, err := alias.Show(id)
+		if output != expected {
+			t.Errorf(":(")
+		}
 	}
 }
 
 func TestShowAll(t *testing.T) {
-	dir, err := setAliasDirectory()
+	fx, err := filepath.Abs(FixtureDir)
 	if err != nil {
-		t.Errorf("error during test setup: %v", err)
-	}
-	defer os.RemoveAll(dir)
-
-	a, err := addAlias()
-	if err != nil {
-		t.Errorf("error creating alias file %v", err)
-	}
-	defer alias.Delete(a.Name)
-
-	showOutput, err := alias.ShowAll()
-	if err != nil {
-		t.Errorf("error while showing all aliases")
+		t.Errorf("error while loading data for TestShow: %v", err)
 	}
 
-	expectedShowOutput, err := generateAliasShowOutput(a)
+	fixturePath := filepath.Join(fx, "show.alias.fixture")
+	expectedBytes, err := ioutil.ReadFile(fixturePath)
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Errorf("error while loading data for TestShow: %v", err)
 	}
 
-	if expectedShowOutput != showOutput {
-		t.Errorf("ShowAll output format has changed")
+	expected := string(expectedBytes)
+
+	output, err := alias.ShowAll()
+	if output != expected {
+		t.Errorf(":(")
 	}
+
+	t.Logf(">>> %s\n", expected)
+	t.Logf(">>> %s\n", output)
+}
+
+func TestMain(m *testing.M) {
+	home, err := setup()
+	if err != nil {
+		fmt.Printf("error while loading data for TestShow: %v", err)
+		os.RemoveAll(home)
+		os.Exit(1)
+	}
+
+	code := m.Run()
+
+	os.RemoveAll(home)
+
+	os.Exit(code)
 }
 
 func addAlias() (*alias.Alias, error) {
@@ -135,26 +137,46 @@ func addAlias() (*alias.Alias, error) {
 	return a, nil
 }
 
-func generateAliasShowOutput(a *alias.Alias) (string, error) {
-	var expectedShowOutput bytes.Buffer
-
-	tmpl := template.Must(template.New("aliases").Funcs(template.FuncMap{"StringsJoin": strings.Join}).Parse(alias.ShowTemplate))
-	if err := tmpl.Execute(&expectedShowOutput, a); err != nil {
-		return "", fmt.Errorf("error generating expected")
+//setup prepares the system environment to run the tests by:
+// 1. Create temp dir and <dir>/.mole
+// 2. Copy fixtures to <dir>/.mole
+// 3. Set temp dir as the user testDir dir
+func setup() (string, error) {
+	testDir, err := ioutil.TempDir("", "mole-alias")
+	if err != nil {
+		return "", fmt.Errorf("error while setting up tests: %v", err)
 	}
 
-	return expectedShowOutput.String(), nil
-}
+	moleAliasDir := filepath.Join(testDir, ".mole")
+	err = os.Mkdir(moleAliasDir, 0755)
+	if err != nil {
+		return "", fmt.Errorf("error while setting up tests: %v", err)
+	}
 
-func setAliasDirectory() (string, error) {
+	err = os.Setenv("HOME", testDir)
+	if err != nil {
+		return "", fmt.Errorf("error while setting up tests: %v", err)
+	}
 
-	dir, err := ioutil.TempDir("", "mole")
+	err = os.Setenv("USERPROFILE", testDir)
+	if err != nil {
+		return "", fmt.Errorf("error while setting up tests: %v", err)
+	}
+
+	fx, err := filepath.Abs(FixtureDir)
 	if err != nil {
 		return "", err
 	}
 
-	os.Setenv("HOME", dir)
-	os.Setenv("USERPROFILE", dir)
+	fixtures := []string{"test-env.toml", "example.toml"}
+	for _, fixture := range fixtures {
+		err = os.Link(filepath.Join(fx, fixture), filepath.Join(moleAliasDir, fixture))
+		if err != nil {
+			return "", err
+		}
+	}
 
-	return dir, nil
+	home = testDir
+
+	return moleAliasDir, nil
 }
