@@ -2,6 +2,7 @@ package alias_test
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -67,7 +68,7 @@ func TestShow(t *testing.T) {
 
 		output, err := alias.Show(id)
 		if output != expected {
-			t.Errorf(":(")
+			t.Errorf("output doesn't match. Failing the test.")
 		}
 	}
 }
@@ -88,11 +89,8 @@ func TestShowAll(t *testing.T) {
 
 	output, err := alias.ShowAll()
 	if output != expected {
-		t.Errorf(":(")
+		t.Errorf("output doesn't match. Failing the test.")
 	}
-
-	t.Logf(">>> %s\n", expected)
-	t.Logf(">>> %s\n", output)
 }
 
 func TestMain(m *testing.M) {
@@ -170,7 +168,7 @@ func setup() (string, error) {
 
 	fixtures := []string{"test-env.toml", "example.toml"}
 	for _, fixture := range fixtures {
-		err = os.Link(filepath.Join(fx, fixture), filepath.Join(moleAliasDir, fixture))
+		err = CopyFile(filepath.Join(fx, fixture), filepath.Join(moleAliasDir, fixture))
 		if err != nil {
 			return "", err
 		}
@@ -179,4 +177,29 @@ func setup() (string, error) {
 	home = testDir
 
 	return moleAliasDir, nil
+}
+
+// GoLang: os.Rename() give error "invalid cross-device link" for Docker container with Volumes.
+// CopyFile(source, destination) will work moving file between folders
+// Source: https://gist.github.com/var23rav/23ae5d0d4d830aff886c3c970b8f6c6b
+func CopyFile(sourcePath, destPath string) error {
+	inputFile, err := os.Open(sourcePath)
+	if err != nil {
+		return fmt.Errorf("Couldn't open source file: %s", err)
+	}
+
+	outputFile, err := os.Create(destPath)
+	if err != nil {
+		inputFile.Close()
+		return fmt.Errorf("Couldn't open dest file: %s", err)
+	}
+	defer outputFile.Close()
+
+	_, err = io.Copy(outputFile, inputFile)
+	inputFile.Close()
+	if err != nil {
+		return fmt.Errorf("Writing to output file failed: %s", err)
+	}
+
+	return nil
 }
