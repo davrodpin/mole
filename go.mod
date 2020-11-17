@@ -14,6 +14,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/sevlyar/go-daemon v0.1.5
 	github.com/sirupsen/logrus v1.6.0
+	github.com/sourcegraph/jsonrpc2 v0.0.0-20200429184054-15c2290dcb37
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.3.2

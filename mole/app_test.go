@@ -43,18 +43,6 @@ func TestDetachedInstanceFileLocations(t *testing.T) {
 
 }
 
-func TestDetachedInstanceGeneratedId(t *testing.T) {
-
-	di, err := mole.NewDetachedInstance("")
-	if err != nil {
-		t.Errorf("error creating a new detached instance: %v", err)
-	}
-
-	if di.Id == "" {
-		t.Errorf("detached instance id is empty")
-	}
-}
-
 func TestDetachedInstanceAlreadyRunning(t *testing.T) {
 	id := "TestDetachedInstanceAlreadyRunning"
 

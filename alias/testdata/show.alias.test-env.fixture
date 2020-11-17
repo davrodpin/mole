@@ -13,3 +13,5 @@ wait-and-retry = "3s"
 ssh-agent = ""
 timeout = "3s"
 config = ""
+rpc = true
+rpc-address = "127.0.0.1:0"

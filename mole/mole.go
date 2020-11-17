@@ -2,15 +2,21 @@ package mole
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/davrodpin/mole/alias"
+	"github.com/davrodpin/mole/fsutils"
+	"github.com/davrodpin/mole/rpc"
 	"github.com/davrodpin/mole/tunnel"
-	"github.com/sevlyar/go-daemon"
 
 	"github.com/awnumar/memguard"
+	"github.com/gofrs/uuid"
+	"github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -31,6 +37,8 @@ type Configuration struct {
 	SshAgent          string
 	Timeout           time.Duration
 	SshConfig         string
+	Rpc               bool
+	RpcAddress        string
 }
 
 // ParseAlias translates a Configuration object to an Alias object.
@@ -51,6 +59,8 @@ func (c Configuration) ParseAlias(name string) *alias.Alias {
 		SshAgent:          c.SshAgent,
 		Timeout:           c.Timeout.String(),
 		SshConfig:         c.SshConfig,
+		Rpc:               c.Rpc,
+		RpcAddress:        c.RpcAddress,
 	}
 }
 
@@ -74,6 +84,14 @@ func (c *Client) Start() error {
 	if c.Conf.Detach {
 		var err error
 
+		if c.Conf.Id == "" {
+			u, err := uuid.NewV4()
+			if err != nil {
+				return fmt.Errorf("could not auto generate app instance id: %v", err)
+			}
+			c.Conf.Id = u.String()[:8]
+		}
+
 		ic, err := NewDetachedInstance(c.Conf.Id)
 		if err != nil {
 			log.WithError(err).Errorf("error while creating directory to store mole instance related files")
@@ -90,8 +108,42 @@ func (c *Client) Start() error {
 		}
 	}
 
+	if c.Conf.Id == "" {
+		c.Conf.Id = strconv.Itoa(os.Getpid())
+	}
+
 	if c.Conf.Verbose {
 		log.SetLevel(log.DebugLevel)
+	}
+
+	d, err := fsutils.CreateInstanceDir(c.Conf.Id)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id": c.Conf.Id,
+		}).WithError(err).Error("error creating directory for mole instance")
+
+		return err
+	}
+
+	log.Infof(">>> %t %s", c.Conf.Rpc, c.Conf.RpcAddress)
+	if c.Conf.Rpc {
+		addr, err := rpc.Start(c.Conf.RpcAddress)
+		if err != nil {
+			return err
+		}
+
+		rd := filepath.Join(d, "rpc")
+
+		err = ioutil.WriteFile(rd, []byte(addr.String()), 0644)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"id": c.Conf.Id,
+			}).WithError(err).Error("error creating file with rpc address")
+
+			return err
+		}
+
+		log.Infof("rpc server address saved on %s", rd)
 	}
 
 	s, err := tunnel.NewServer(c.Conf.Server.User, c.Conf.Server.Address(), c.Conf.Key, c.Conf.SshAgent, c.Conf.SshConfig)
@@ -142,7 +194,8 @@ func (c *Client) Start() error {
 	//TODO need to find a way to require the attributes below to be always set
 	// since they are not optional (functionality will break if they are not
 	// set and CLI parsing is the one setting the default values).
-	// That could be done by make them required in the constructor's signature
+	// That could be done by make them required in the constructor's signature or
+	// by creating a configuration struct for a tunnel object.
 	t.ConnectionRetries = c.Conf.ConnectionRetries
 	t.WaitAndRetry = c.Conf.WaitAndRetry
 	t.KeepAliveInterval = c.Conf.KeepAliveInterval
@@ -266,6 +319,10 @@ func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
 	c.Timeout = tim
 
 	c.SshConfig = al.SshConfig
+
+	c.Rpc = al.Rpc
+
+	c.RpcAddress = al.RpcAddress
 
 	return nil
 }

@@ -47,6 +47,10 @@ provide 0 to never give up or a negative number to disable`)
 	cmd.Flags().DurationVarP(&conf.WaitAndRetry, "retry-wait", "w", 3*time.Second, "time to wait before trying to reconnect to ssh server")
 	cmd.Flags().StringVarP(&conf.SshAgent, "ssh-agent", "A", "", "unix socket to communicate with a ssh agent")
 	cmd.Flags().DurationVarP(&conf.Timeout, "timeout", "t", 3*time.Second, "ssh server connection timeout")
+	cmd.Flags().BoolVarP(&conf.Rpc, "rpc", "", false, "enable the rpc server")
+	cmd.Flags().StringVarP(&conf.RpcAddress, "rpc-address", "", "127.0.0.1:0", `set the network address of the rpc server.
+The default value uses a random free port to listen for requests.
+The full address is kept on $HOME/.mole/<id>.`)
 
 	err := cmd.MarkFlagRequired("server")
 	if err != nil {

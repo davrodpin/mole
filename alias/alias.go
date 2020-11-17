@@ -28,10 +28,13 @@ type Alias struct {
 	SshAgent          string   `toml:"ssh-agent"`
 	Timeout           string   `toml:"timeout"`
 	SshConfig         string   `toml:"config"`
+	Rpc               bool     `toml:"rpc"`
+	RpcAddress        string   `toml:"rpc-address"`
 }
 
+// String parses a Alias object to a string representation.
 func (a Alias) String() string {
-	return fmt.Sprintf("[verbose: %t, insecure: %t, detach: %t, source: %s, destination: %s, server: %s, key: %s, keep-alive-interval: %s, connection-retries: %d, wait-and-retry: %s, ssh-agent: %s, timeout: %s, config: %s]",
+	return fmt.Sprintf("[verbose: %t, insecure: %t, detach: %t, source: %s, destination: %s, server: %s, key: %s, keep-alive-interval: %s, connection-retries: %d, wait-and-retry: %s, ssh-agent: %s, timeout: %s, config: %s, rpc: %t, rpc-address: %s]",
 		a.Verbose,
 		a.Insecure,
 		a.Detach,
@@ -45,12 +48,14 @@ func (a Alias) String() string {
 		a.SshAgent,
 		a.Timeout,
 		a.SshConfig,
+		a.Rpc,
+		a.RpcAddress,
 	)
 }
 
 // Add persists an tunnel alias to the disk
 func Add(alias *Alias) error {
-	mp, err := createDir()
+	mp, err := fsutils.CreateHomeDir()
 	if err != nil {
 		return err
 	}
@@ -172,24 +177,6 @@ func Get(aliasName string) (*Alias, error) {
 	a.Name = aliasName
 
 	return a, nil
-}
-
-func createDir() (string, error) {
-	mp, err := fsutils.Dir()
-	if err != nil {
-		return "", err
-	}
-
-	if _, err := os.Stat(mp); !os.IsNotExist(err) {
-		return mp, nil
-	}
-
-	err = os.MkdirAll(mp, os.ModePerm)
-	if err != nil {
-		return "", err
-	}
-
-	return mp, nil
 }
 
 //FIXME terrible struct name. Change it.
