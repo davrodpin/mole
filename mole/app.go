@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/davrodpin/mole/fsutils"
-	"github.com/gofrs/uuid"
 	"github.com/hpcloud/tail"
 )
 
@@ -34,26 +33,13 @@ type DetachedInstance struct {
 // NewDetachedInstance returns a new instance of DetachedInstance, making sure
 // the application instance directory is created.
 func NewDetachedInstance(id string) (*DetachedInstance, error) {
-	instanceDir, err := fsutils.Dir()
+	if id == "" {
+		return nil, fmt.Errorf("application instance id can't be empty")
+	}
+
+	_, err := fsutils.CreateInstanceDir(id)
 	if err != nil {
 		return nil, err
-	}
-
-	if id == "" {
-		u, err := uuid.NewV4()
-		if err != nil {
-			return nil, fmt.Errorf("could not auto generate app instance id: %v", err)
-		}
-		id = u.String()[:8]
-	}
-
-	home := filepath.Join(instanceDir, id)
-
-	if _, err := os.Stat(home); os.IsNotExist(err) {
-		err := os.MkdirAll(home, 0755)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	pfl, err := GetPidFileLocation(id)

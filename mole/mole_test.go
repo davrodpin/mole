@@ -8,8 +8,6 @@ import (
 )
 
 func TestAliasMerge(t *testing.T) {
-	//keepAliveInterval, _ := time.ParseDuration("5s")
-
 	tests := []struct {
 		alias      *alias.Alias
 		givenFlags []string

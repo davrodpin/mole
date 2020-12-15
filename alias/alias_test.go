@@ -67,6 +67,10 @@ func TestShow(t *testing.T) {
 		expected := string(expectedBytes)
 
 		output, err := alias.Show(id)
+		if err != nil {
+			t.Errorf("error showing alias %s: %v", id, err)
+		}
+
 		if output != expected {
 			t.Errorf("output doesn't match. Failing the test.")
 		}
