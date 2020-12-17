@@ -4,21 +4,37 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"testing"
 
 	"github.com/davrodpin/mole/rpc"
 )
 
+var (
+	addr net.Addr
+)
+
 func TestHandler(t *testing.T) {
+	responseTemplate := `{"message":"%s"}`
 	method := "test"
-	expectedResponse := `{"message":"test"}`
+	paramValue := "param"
+	expectedResponse := fmt.Sprintf(responseTemplate, paramValue)
 
 	rpc.Register(method, func(params interface{}) (json.RawMessage, error) {
-		return json.RawMessage(expectedResponse), nil
+		var r []uint8
+		var ok bool
+
+		if r, ok = params.([]uint8); !ok {
+			return nil, fmt.Errorf("invalid parameter")
+		}
+
+		m := fmt.Sprintf(responseTemplate, string(r[1:6]))
+
+		return json.RawMessage(m), nil
 	})
 
-	response, err := rpc.Call(context.Background(), method, "param")
+	response, err := rpc.Call(context.Background(), addr.String(), method, paramValue)
 	if err != nil {
 		t.Errorf("error while calling remote procedure: %v", err)
 	}
@@ -37,7 +53,7 @@ func TestMethodNotRegistered(t *testing.T) {
 	method := "methodnotregistered"
 	expectedResponse := fmt.Sprintf(`{"code":-32601,"data":null,"message":"method %s not found"}`, method)
 
-	response, err := rpc.Call(context.Background(), method, "param")
+	response, err := rpc.Call(context.Background(), addr.String(), method, "param")
 	if err != nil {
 		t.Errorf("error while calling remote procedure: %v", err)
 	}
@@ -60,7 +76,7 @@ func TestMethodWithError(t *testing.T) {
 		return nil, fmt.Errorf("error")
 	})
 
-	response, err := rpc.Call(context.Background(), method, "param")
+	response, err := rpc.Call(context.Background(), addr.String(), method, "param")
 	if err != nil {
 		t.Errorf("error while calling remote procedure: %v", err)
 	}
@@ -76,7 +92,9 @@ func TestMethodWithError(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	_, err := rpc.Start(rpc.DefaultAddress)
+	var err error
+
+	addr, err = rpc.Start(rpc.DefaultAddress)
 	if err != nil {
 		fmt.Printf("error initializing rpc server: %v", err)
 		os.Exit(1)
