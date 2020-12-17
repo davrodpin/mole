@@ -56,3 +56,14 @@ func CreateInstanceDir(appId string) (string, error) {
 
 	return d, nil
 }
+
+// InstanceDir returns the location where all files related to a specific mole
+// instance are persisted.
+func InstanceDir(id string) (string, error) {
+	home, err := Dir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, id), nil
+}

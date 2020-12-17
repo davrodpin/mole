@@ -2,18 +2,16 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"sync"
-
-	"encoding/json"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
 var registeredMethods = sync.Map{}
-var listener net.Listener
 
 const (
 	// DefaultAddress is the network address used by the rpc server if none is given.
@@ -29,7 +27,7 @@ func Start(address string) (net.Addr, error) {
 		address = DefaultAddress
 	}
 
-	listener, err = net.Listen("tcp", address)
+	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +37,7 @@ func Start(address string) (net.Addr, error) {
 
 	go func() {
 		for {
-			conn, err := listener.Accept()
+			conn, err := lis.Accept()
 			if err != nil {
 				log.WithError(err).Warnf("error establishing connection with rpc client.")
 			}
@@ -48,7 +46,7 @@ func Start(address string) (net.Addr, error) {
 		}
 	}()
 
-	return listener.Addr(), nil
+	return lis.Addr(), nil
 }
 
 // Handler handles JSON-RPC requests and notifications.
@@ -79,8 +77,7 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		return
 	}
 
-	m, _ := registeredMethods.Load(req.Method)
-	rm, err := m.(Method)(req.Params)
+	params, err := req.Params.MarshalJSON()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"notification": req.Notif,
@@ -96,9 +93,31 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 			})
 
 			sendResponse(ctx, conn, req, resp)
-
-			return
 		}
+
+		return
+	}
+
+	m, _ := registeredMethods.Load(req.Method)
+	rm, err := m.(Method)(params)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"notification": req.Notif,
+			"method":       req.Method,
+			"id":           req.ID,
+		}).WithError(err).Warn("error executing rpc method.")
+
+		if !req.Notif {
+			resp := &jsonrpc2.Response{}
+			resp.SetResult(jsonrpc2.Error{
+				Code:    jsonrpc2.CodeInternalError,
+				Message: fmt.Sprintf("error executing rpc method %s", req.Method),
+			})
+
+			sendResponse(ctx, conn, req, resp)
+		}
+
+		return
 	}
 
 	if !req.Notif {
@@ -116,10 +135,10 @@ func Register(name string, method Method) {
 // Method represents a procedure that can be called remotely.
 type Method func(params interface{}) (json.RawMessage, error)
 
-// Call initiates a JSON-RPC call using the specified method and waits for the
-// response.
-func Call(ctx context.Context, method string, params interface{}) (map[string]interface{}, error) {
-	tc, err := net.Dial("tcp", listener.Addr().String())
+// Call initiates a JSON-RPC call to a given rpc server address, using the
+// specified method and waits for the response.
+func Call(ctx context.Context, addr, method string, params interface{}) (map[string]interface{}, error) {
+	tc, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
