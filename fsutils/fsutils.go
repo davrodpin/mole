@@ -56,7 +56,7 @@ func CreateHomeDir() (string, error) {
 // Along with the directory this function also created a pid file where the
 // instance process id is stored.
 func CreateInstanceDir(appId string) (*InstanceDirInfo, error) {
-	home, err := Dir()
+	home, err := CreateHomeDir()
 	if err != nil {
 		return nil, err
 	}
@@ -161,4 +161,64 @@ func createPidFile(id string) (string, error) {
 
 	return pfl, nil
 
+}
+
+// RpcAddress returns the network address of the rpc server for a given
+// application instance id or alias.
+func RpcAddress(id string) (string, error) {
+	d, err := InstanceDir(id)
+	if err != nil {
+		return "", err
+	}
+
+	rf := filepath.Join(d.Dir, "rpc")
+
+	if _, err := os.Stat(rf); os.IsNotExist(err) {
+		return "", fmt.Errorf("can't find rpc address for instance %s: instance is not running or rpc is disabled", id)
+	}
+
+	data, err := ioutil.ReadFile(rf)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+// PidFileLocation returns the location of the pid file associated with a mole
+// instance.
+//
+// Only detached instances keep a pid file so, if an alias is given to
+// this function, a path to a non-existent file will be returned.
+func PidFileLocation(id string) (string, error) {
+	d, err := InstanceDir(id)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(d.Dir, InstancePidFile), nil
+}
+
+// Pid returns the process id associated with the given alias or id.
+func Pid(id string) (int, error) {
+	if pid, err := strconv.Atoi(id); err == nil {
+		return pid, nil
+	}
+
+	pfl, err := PidFileLocation(id)
+	if err != nil {
+		return -1, err
+	}
+
+	ps, err := ioutil.ReadFile(pfl)
+	if err != nil {
+		return -1, err
+	}
+
+	pid, err := strconv.Atoi(string(ps))
+	if err != nil {
+		return -1, err
+	}
+
+	return pid, nil
 }

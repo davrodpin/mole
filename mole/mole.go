@@ -1,6 +1,7 @@
 package mole
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,29 +17,35 @@ import (
 
 	"github.com/awnumar/memguard"
 	"github.com/gofrs/uuid"
+	"github.com/mitchellh/mapstructure"
 	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+// cli keeps a reference to the latest Client object created.
+// This is mostly needed to introspect client states during runtime (e.g. a
+// remote procedure call that needs to check certain runtime information)
+var cli *Client
+
 type Configuration struct {
-	Id                string
-	TunnelType        string
-	Verbose           bool
-	Insecure          bool
-	Detach            bool
-	Source            alias.AddressInputList
-	Destination       alias.AddressInputList
-	Server            alias.AddressInput
-	Key               string
-	KeepAliveInterval time.Duration
-	ConnectionRetries int
-	WaitAndRetry      time.Duration
-	SshAgent          string
-	Timeout           time.Duration
-	SshConfig         string
-	Rpc               bool
-	RpcAddress        string
+	Id                string                 `json:"id" mapstructure:"id" toml:"id"`
+	TunnelType        string                 `json:"tunnel-type" mapstructure:"tunnel-type" toml:"tunnel-type"`
+	Verbose           bool                   `json:"verbose" mapstructure:"verbose" toml:"verbose"`
+	Insecure          bool                   `json:"insecure" mapstructure:"insecure" toml:"insecure"`
+	Detach            bool                   `json:"detach" mapstructure:"detach" toml:"detach"`
+	Source            alias.AddressInputList `json:"source" mapstructure:"source" toml:"source"`
+	Destination       alias.AddressInputList `json:"destination" mapstructure:"destination" toml:"destination"`
+	Server            alias.AddressInput     `json:"server" mapstructure:"server" toml:"server"`
+	Key               string                 `json:"key" mapstructure:"key" toml:"key"`
+	KeepAliveInterval time.Duration          `json:"keep-alive-interval" mapstructure:"keep-alive-interva" toml:"keep-alive-interval"`
+	ConnectionRetries int                    `json:"connection-retries" mapstructure:"connection-retries" toml:"connection-retries"`
+	WaitAndRetry      time.Duration          `json:"wait-and-retry" mapstructure:"wait-and-retry" toml:"wait-and-retry"`
+	SshAgent          string                 `json:"ssh-agent" mapstructure:"ssh-agent" toml:"ssh-agent"`
+	Timeout           time.Duration          `json:"timeout" mapstructure:"timeout" toml:"timeout"`
+	SshConfig         string                 `json:"ssh-config" mapstructure:"ssh-config" toml:"ssh-config"`
+	Rpc               bool                   `json:"rpc" mapstructure:"rpc" toml:"rpc"`
+	RpcAddress        string                 `json:"rpc-address" mapstructure:"rpc-address" toml:"rpc-address"`
 }
 
 // ParseAlias translates a Configuration object to an Alias object.
@@ -72,10 +79,12 @@ type Client struct {
 
 // New initializes a new mole's client.
 func New(conf *Configuration) *Client {
-	return &Client{
+	cli = &Client{
 		Conf: conf,
 		sigs: make(chan os.Signal, 1),
 	}
+
+	return cli
 }
 
 // Start kicks off mole's client, establishing the tunnel and its channels
@@ -145,6 +154,8 @@ func (c *Client) Start() error {
 
 			return err
 		}
+
+		c.Conf.RpcAddress = addr.String()
 
 		log.Infof("rpc server address saved on %s", rd)
 	}
@@ -347,6 +358,49 @@ func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
 	c.RpcAddress = al.RpcAddress
 
 	return nil
+}
+
+// ShowInstances returns the runtime information about all instances of mole
+// running on the system with rpc enabled.
+func ShowInstances() (*InstancesRuntime, error) {
+	ctx := context.Background()
+	data, err := rpc.ShowAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var instances []Runtime
+
+	err = mapstructure.Decode(data, &instances)
+	if err != nil {
+		return nil, err
+	}
+
+	runtime := InstancesRuntime(instances)
+
+	if len(runtime) == 0 {
+		return nil, fmt.Errorf("no instances were found.")
+	}
+
+	return &runtime, nil
+}
+
+// ShowInstance returns the runtime information about an application instance
+// from the given id or alias.
+func ShowInstance(id string) (*Runtime, error) {
+	ctx := context.Background()
+	info, err := rpc.Show(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var r Runtime
+	err = mapstructure.Decode(info, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &r, nil
 }
 
 func startDaemonProcess(instanceConf *DetachedInstance) error {

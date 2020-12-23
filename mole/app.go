@@ -1,15 +1,10 @@
 package mole
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/davrodpin/mole/fsutils"
-	"github.com/davrodpin/mole/rpc"
 
 	"github.com/hpcloud/tail"
 )
@@ -74,31 +69,4 @@ func ShowLogs(id string, follow bool) error {
 	}
 
 	return nil
-}
-
-// Rpc calls a remote procedure on another mole instance given its id or alias.
-func Rpc(id, method string, params interface{}) (string, error) {
-	d, err := fsutils.InstanceDir(id)
-	if err != nil {
-		return "", err
-	}
-
-	rf := filepath.Join(d.Dir, "rpc")
-
-	addr, err := ioutil.ReadFile(rf)
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := rpc.Call(context.Background(), string(addr), method, params)
-	if err != nil {
-		return "", err
-	}
-
-	r, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		return "", err
-	}
-
-	return string(r), nil
 }
