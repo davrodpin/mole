@@ -30,6 +30,7 @@ Destination endpoints are adrresess that can be reached from the jump server.
 
 		err := client.Start()
 		if err != nil {
+			log.WithError(err).Error("error starting mole")
 			os.Exit(1)
 		}
 	},
