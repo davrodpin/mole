@@ -284,8 +284,9 @@ INFO[0000] tunnel channel is waiting for connection      destination="172.17.0.1
 $ mole add alias local example \
     --source :8080 \
     --destination 172.17.0.100:80 \
-    --server user@example.com:22
-$ mole start alias example --detach
+    --server user@example.com:22 \
+    --detach
+$ mole start alias example
 INFO[0000] execute "mole stop example" if you like to stop it at any time
 ```
 
