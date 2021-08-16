@@ -9,6 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 )
 
 var startAliasCmd = &cobra.Command{
@@ -30,6 +31,13 @@ same name stored in the alias.
 	},
 	Run: func(cmd *cobra.Command, arg []string) {
 		var err error
+
+		// This can't be inside init() because of https://github.com/spf13/cobra/issues/1019
+		cmd.Flags().VisitAll(func(f *flag.Flag) {
+			if f.Changed {
+				givenFlags = append(givenFlags, f.Name)
+			}
+		})
 
 		al, err := alias.Get(aliasName)
 		if err != nil {
