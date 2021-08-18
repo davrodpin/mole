@@ -13,8 +13,8 @@ import (
 var (
 	stopCmd = &cobra.Command{
 		Use:   "stop [alias name or id]",
-		Short: "Stops a ssh tunnel",
-		Long:  "Stops a ssh tunnel by either an auto generated id or a given alias",
+		Short: "Stops an instance of mole ",
+		Long:  "Stops an instance of mole by either a given auto generated id or alias",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("alias name or id not provided")

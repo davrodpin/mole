@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/davrodpin/mole/fsutils"
 	"github.com/davrodpin/mole/mole"
 )
 
@@ -32,7 +33,7 @@ func TestDetachedInstanceFileLocations(t *testing.T) {
 		t.Errorf("pid file does not exist: %v", err)
 	}
 
-	lfl, err := mole.GetLogFileLocation(id)
+	lfl, err := fsutils.GetLogFileLocation(id)
 	if err != nil {
 		t.Errorf("error retrieving log file location: %v", err)
 	}
@@ -43,26 +44,11 @@ func TestDetachedInstanceFileLocations(t *testing.T) {
 
 }
 
-func TestDetachedInstanceAlreadyRunning(t *testing.T) {
-	id := "TestDetachedInstanceAlreadyRunning"
-
-	os.MkdirAll(filepath.Join(home, ".mole", id), 0755)
-	pidFileLocation := filepath.Join(home, ".mole", id, mole.InstancePidFile)
-	ioutil.WriteFile(pidFileLocation, []byte("1234"), 0644)
-
-	_, err := mole.NewDetachedInstance(id)
-
-	if err == nil {
-		t.Errorf("error expected but got nil")
-	}
-
-}
-
 func TestShowLogs(t *testing.T) {
 	id := "TestDetachedInstanceAlreadyRunning"
 
 	os.MkdirAll(filepath.Join(home, ".mole", id), 0755)
-	logFileLocation := filepath.Join(home, ".mole", id, mole.InstanceLogFile)
+	logFileLocation := filepath.Join(home, ".mole", id, fsutils.InstanceLogFile)
 	ioutil.WriteFile(logFileLocation, []byte("first log message\nsecond log message\nthird log message\n"), 0644)
 
 	err := mole.ShowLogs(id, false)
