@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 
 	"github.com/awnumar/memguard"
 	"github.com/gofrs/uuid"
-	"github.com/sevlyar/go-daemon"
+	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -67,11 +67,15 @@ func (c Configuration) ParseAlias(name string) *alias.Alias {
 // Client manages the overall state of the application based on its configuration.
 type Client struct {
 	Conf *Configuration
+	sigs chan os.Signal
 }
 
 // New initializes a new mole's client.
 func New(conf *Configuration) *Client {
-	return &Client{Conf: conf}
+	return &Client{
+		Conf: conf,
+		sigs: make(chan os.Signal, 1),
+	}
 }
 
 // Start kicks off mole's client, establishing the tunnel and its channels
@@ -81,16 +85,18 @@ func (c *Client) Start() error {
 	// This call makes sure all data will be destroy when the program exits.
 	defer memguard.Purge()
 
+	if c.Conf.Id == "" {
+		u, err := uuid.NewV4()
+		if err != nil {
+			return fmt.Errorf("could not auto generate app instance id: %v", err)
+		}
+		c.Conf.Id = u.String()[:8]
+	}
+
+	log.Infof("instance identifier is %s", c.Conf.Id)
+
 	if c.Conf.Detach {
 		var err error
-
-		if c.Conf.Id == "" {
-			u, err := uuid.NewV4()
-			if err != nil {
-				return fmt.Errorf("could not auto generate app instance id: %v", err)
-			}
-			c.Conf.Id = u.String()[:8]
-		}
 
 		ic, err := NewDetachedInstance(c.Conf.Id)
 		if err != nil {
@@ -106,10 +112,8 @@ func (c *Client) Start() error {
 
 			return err
 		}
-	}
-
-	if c.Conf.Id == "" {
-		c.Conf.Id = strconv.Itoa(os.Getpid())
+	} else {
+		go c.handleSignals()
 	}
 
 	if c.Conf.Verbose {
@@ -125,14 +129,13 @@ func (c *Client) Start() error {
 		return err
 	}
 
-	log.Infof(">>> %t %s", c.Conf.Rpc, c.Conf.RpcAddress)
 	if c.Conf.Rpc {
 		addr, err := rpc.Start(c.Conf.RpcAddress)
 		if err != nil {
 			return err
 		}
 
-		rd := filepath.Join(d, "rpc")
+		rd := filepath.Join(d.Dir, "rpc")
 
 		err = ioutil.WriteFile(rd, []byte(addr.String()), 0644)
 		if err != nil {
@@ -213,7 +216,7 @@ func (c *Client) Start() error {
 
 // Stop shuts down a detached mole's application instance.
 func (c *Client) Stop() error {
-	pfp, err := GetPidFileLocation(c.Conf.Id)
+	pfp, err := fsutils.GetPidFileLocation(c.Conf.Id)
 	if err != nil {
 		return fmt.Errorf("error getting information about aliases directory: %v", err)
 	}
@@ -231,17 +234,36 @@ func (c *Client) Stop() error {
 		return err
 	}
 
+	if c.Conf.Detach {
+		err = os.RemoveAll(pfp)
+		if err != nil {
+			return err
+		}
+	} else {
+		d, err := fsutils.InstanceDir(c.Conf.Id)
+		if err != nil {
+			return err
+		}
+
+		err = os.RemoveAll(d.Dir)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = d.Kill()
 	if err != nil {
 		return err
 	}
 
-	err = os.RemoveAll(pfp)
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+func (c *Client) handleSignals() {
+	signal.Notify(c.sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	sig := <-c.sigs
+	log.Debugf("process signal %s received", sig)
+	c.Stop()
 }
 
 // Merge overwrites Configuration from the given Alias.
@@ -329,9 +351,9 @@ func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
 
 func startDaemonProcess(instanceConf *DetachedInstance) error {
 	cntxt := &daemon.Context{
-		PidFileName: InstancePidFile,
+		PidFileName: fsutils.InstancePidFile,
 		PidFilePerm: 0644,
-		LogFileName: InstanceLogFile,
+		LogFileName: fsutils.InstanceLogFile,
 		LogFilePerm: 0640,
 		Umask:       027,
 		Args:        os.Args,
@@ -343,12 +365,12 @@ func startDaemonProcess(instanceConf *DetachedInstance) error {
 	}
 
 	if d != nil {
-		err = os.Rename(InstancePidFile, instanceConf.PidFile)
+		err = os.Rename(fsutils.InstancePidFile, instanceConf.PidFile)
 		if err != nil {
 			return err
 		}
 
-		err = os.Rename(InstanceLogFile, instanceConf.LogFile)
+		err = os.Rename(fsutils.InstanceLogFile, instanceConf.LogFile)
 		if err != nil {
 			return err
 		}
