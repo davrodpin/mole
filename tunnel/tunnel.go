@@ -54,13 +54,13 @@ func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 
 	c, err := NewSSHConfigFile(cfgPath)
 	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
+		if !(errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid)){
 			return nil, fmt.Errorf("error accessing %s: %v", host, err)
 		}
 	}
 
 	// If ssh config file doesnt exists, create an empty ssh config struct to avoid nil pointer deference
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid){
 		c = NewEmptySSHConfigStruct()
 	}
 
