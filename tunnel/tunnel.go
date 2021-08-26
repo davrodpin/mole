@@ -452,10 +452,9 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer
 
 	signer, err := server.Key.Parse()
-	if err != nil {
-		return nil, err
+	if err == nil {
+		signers = append(signers, signer)
 	}
-	signers = append(signers, signer)
 
 	if server.SSHAgent != "" {
 		if _, err := os.Stat(server.SSHAgent); err == nil {
@@ -486,6 +485,8 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 
 func copyConn(writer, reader net.Conn) {
 	_, err := io.Copy(writer, reader)
+	defer writer.Close()
+	defer reader.Close()
 	if err != nil {
 		log.Errorf("%v", err)
 	}
