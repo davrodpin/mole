@@ -21,6 +21,9 @@ type SSHConfigFile struct {
 // NewSSHConfigFile creates a new instance of SSHConfigFile based on the
 // ssh config file from configPath
 func NewSSHConfigFile(configPath string) (*SSHConfigFile, error) {
+        if configPath == "" {
+	        return nil, os.ErrInvalid
+	}
 	if strings.Contains(configPath, homeVar) {
 		home, err := os.UserHomeDir()
 		if err != nil {
