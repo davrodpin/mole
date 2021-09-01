@@ -21,9 +21,9 @@ func ShowRpc(params interface{}) (json.RawMessage, error) {
 		return nil, fmt.Errorf("client configuration could not be found.")
 	}
 
-	conf := cli.Conf
+	runtime := cli.Runtime()
 
-	cj, err := json.Marshal(conf)
+	cj, err := json.Marshal(runtime)
 	if err != nil {
 		return nil, err
 	}
