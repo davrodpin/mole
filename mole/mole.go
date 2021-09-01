@@ -73,8 +73,9 @@ func (c Configuration) ParseAlias(name string) *alias.Alias {
 
 // Client manages the overall state of the application based on its configuration.
 type Client struct {
-	Conf *Configuration
-	sigs chan os.Signal
+	Conf   *Configuration
+	Tunnel *tunnel.Tunnel
+	sigs   chan os.Signal
 }
 
 // New initializes a new mole's client.
@@ -160,63 +161,20 @@ func (c *Client) Start() error {
 		log.Infof("rpc server address saved on %s", rd)
 	}
 
-	s, err := tunnel.NewServer(c.Conf.Server.User, c.Conf.Server.Address(), c.Conf.Key, c.Conf.SshAgent, c.Conf.SshConfig)
+	t, err := createTunnel(c.Conf)
 	if err != nil {
-		log.Errorf("error processing server options: %v\n", err)
-		return err
-	}
-
-	s.Insecure = c.Conf.Insecure
-	s.Timeout = c.Conf.Timeout
-
-	err = s.Key.HandlePassphrase(func() ([]byte, error) {
-		fmt.Printf("The key provided is secured by a password. Please provide it below:\n")
-		fmt.Printf("Password: ")
-		p, err := terminal.ReadPassword(int(syscall.Stdin))
-		fmt.Printf("\n")
-		return p, err
-	})
-
-	if err != nil {
-		log.WithError(err).Error("error setting up password handling function")
-		return err
-	}
-
-	log.Debugf("server: %s", s)
-
-	source := make([]string, len(c.Conf.Source))
-	for i, r := range c.Conf.Source {
-		source[i] = r.String()
-	}
-
-	destination := make([]string, len(c.Conf.Destination))
-	for i, r := range c.Conf.Destination {
-		if r.Port == "" {
-			log.WithError(err).Errorf("missing port in destination address: %s", r.String())
-			return err
-		}
-
-		destination[i] = r.String()
-	}
-
-	t, err := tunnel.New(c.Conf.TunnelType, s, source, destination, c.Conf.SshConfig)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	//TODO need to find a way to require the attributes below to be always set
-	// since they are not optional (functionality will break if they are not
-	// set and CLI parsing is the one setting the default values).
-	// That could be done by make them required in the constructor's signature or
-	// by creating a configuration struct for a tunnel object.
-	t.ConnectionRetries = c.Conf.ConnectionRetries
-	t.WaitAndRetry = c.Conf.WaitAndRetry
-	t.KeepAliveInterval = c.Conf.KeepAliveInterval
-
-	if err = t.Start(); err != nil {
 		log.WithFields(log.Fields{
-			"tunnel": t.String(),
+			"id": c.Conf.Id,
+		}).WithError(err).Error("error creating tunnel")
+
+		return err
+	}
+
+	c.Tunnel = t
+
+	if err = c.Tunnel.Start(); err != nil {
+		log.WithFields(log.Fields{
+			"tunnel": c.Tunnel.String(),
 		}).WithError(err).Error("error while starting tunnel")
 
 		return err
@@ -449,4 +407,62 @@ func (fs flags) lookup(flag string) bool {
 	}
 
 	return false
+}
+
+func createTunnel(conf *Configuration) (*tunnel.Tunnel, error) {
+	s, err := tunnel.NewServer(conf.Server.User, conf.Server.Address(), conf.Key, conf.SshAgent, conf.SshConfig)
+	if err != nil {
+		log.Errorf("error processing server options: %v\n", err)
+		return nil, err
+	}
+
+	s.Insecure = conf.Insecure
+	s.Timeout = conf.Timeout
+
+	err = s.Key.HandlePassphrase(func() ([]byte, error) {
+		fmt.Printf("The key provided is secured by a password. Please provide it below:\n")
+		fmt.Printf("Password: ")
+		p, err := terminal.ReadPassword(int(syscall.Stdin))
+		fmt.Printf("\n")
+		return p, err
+	})
+
+	if err != nil {
+		log.WithError(err).Error("error setting up password handling function")
+		return nil, err
+	}
+
+	log.Debugf("server: %s", s)
+
+	source := make([]string, len(conf.Source))
+	for i, r := range conf.Source {
+		source[i] = r.String()
+	}
+
+	destination := make([]string, len(conf.Destination))
+	for i, r := range conf.Destination {
+		if r.Port == "" {
+			log.WithError(err).Errorf("missing port in destination address: %s", r.String())
+			return nil, err
+		}
+
+		destination[i] = r.String()
+	}
+
+	t, err := tunnel.New(conf.TunnelType, s, source, destination, conf.SshConfig)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	//TODO need to find a way to require the attributes below to be always set
+	// since they are not optional (functionality will break if they are not
+	// set and CLI parsing is the one setting the default values).
+	// That could be done by make them required in the constructor's signature or
+	// by creating a configuration struct for a tunnel object.
+	t.ConnectionRetries = conf.ConnectionRetries
+	t.WaitAndRetry = conf.WaitAndRetry
+	t.KeepAliveInterval = conf.KeepAliveInterval
+
+	return t, nil
 }

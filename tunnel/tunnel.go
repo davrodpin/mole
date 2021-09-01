@@ -451,6 +451,18 @@ func (t *Tunnel) keepAlive() {
 	}
 }
 
+// Channels returns a copy of all channels configured for the tunnel.
+func (t *Tunnel) Channels() []*SSHChannel {
+	channels := make([]*SSHChannel, len(t.channels))
+
+	for i, c := range t.channels {
+		cc := *c
+		channels[i] = &cc
+	}
+
+	return channels
+}
+
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer
 
