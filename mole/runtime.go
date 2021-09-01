@@ -11,7 +11,7 @@ type Formatter interface {
 	Format(format string) (string, error)
 }
 
-// Runtime holds runtime data about an application instances.
+// Runtime holds runtime data about an application instance.
 type Runtime Configuration
 
 // Format parses a Runtime object into a string representation based on the given

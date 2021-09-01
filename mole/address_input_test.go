@@ -1,10 +1,10 @@
-package alias_test
+package mole_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/davrodpin/mole/alias"
+	"github.com/davrodpin/mole/mole"
 )
 
 func TestAddressInputSet(t *testing.T) {
@@ -20,7 +20,7 @@ func TestAddressInputSet(t *testing.T) {
 		},
 	}
 
-	var ai alias.AddressInput
+	var ai mole.AddressInput
 	for id, test := range tests {
 		ai.Set(fmt.Sprintf("%s@%s:%s", test.user, test.host, test.port))
 
@@ -50,7 +50,7 @@ func TestAddressInputListSet(t *testing.T) {
 	}
 
 	for id, test := range tests {
-		aiList := alias.AddressInputList{}
+		aiList := mole.AddressInputList{}
 		aiList.Set(test.ai)
 
 		if test.ai != aiList.String() {
@@ -79,7 +79,7 @@ func TestAddressInputAddress(t *testing.T) {
 	}
 
 	for id, test := range tests {
-		ai := alias.AddressInput{Host: test.host, Port: test.port}
+		ai := mole.AddressInput{Host: test.host, Port: test.port}
 		addr := ai.Address()
 
 		if test.expected != addr {
