@@ -1,4 +1,4 @@
-package alias
+package mole
 
 import (
 	"fmt"
