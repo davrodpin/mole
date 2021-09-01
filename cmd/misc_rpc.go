@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
-	"github.com/davrodpin/mole/mole"
+	"github.com/davrodpin/mole/rpc"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -32,15 +34,25 @@ var (
 			return nil
 		},
 		Run: func(cmd *cobra.Command, arg []string) {
-			resp, err := mole.Rpc(id, method, params)
+			resp, err := rpc.CallById(context.Background(), id, method, params)
 			if err != nil {
 				log.WithError(err).WithFields(log.Fields{
 					"id": id,
 				}).Error("error executing remote procedure.")
+
 				os.Exit(1)
 			}
 
-			fmt.Printf(resp)
+			json, err := json.MarshalIndent(resp, "", "  ")
+			if err != nil {
+				log.WithError(err).WithFields(log.Fields{
+					"id": id,
+				}).Error("error executing remote procedure.")
+
+				os.Exit(1)
+			}
+
+			fmt.Printf("%s\n", string(json))
 		},
 	}
 )

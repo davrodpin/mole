@@ -14,9 +14,9 @@ var re = regexp.MustCompile(`(?P<user>.+@)?(?P<host>[[:alpha:][:digit:]\_\-\.]+)
 
 // AddressInput holds information about a host
 type AddressInput struct {
-	User string
-	Host string
-	Port string
+	User string `mapstructure:"user" toml:"user"`
+	Host string `mapstructure:"host" toml:"host"`
+	Port string `mapstructure:"port" toml:"port"`
 }
 
 // String returns a string representation of a AddressInput

@@ -135,27 +135,6 @@ func Register(name string, method Method) {
 // Method represents a procedure that can be called remotely.
 type Method func(params interface{}) (json.RawMessage, error)
 
-// Call initiates a JSON-RPC call to a given rpc server address, using the
-// specified method and waits for the response.
-func Call(ctx context.Context, addr, method string, params interface{}) (map[string]interface{}, error) {
-	tc, err := net.Dial("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-
-	stream := jsonrpc2.NewBufferedStream(tc, jsonrpc2.VarintObjectCodec{})
-	h := &Handler{}
-	conn := jsonrpc2.NewConn(ctx, stream, h)
-
-	var r map[string]interface{}
-	err = conn.Call(ctx, method, params, &r)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
-}
-
 func sendResponse(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request, resp *jsonrpc2.Response) error {
 	if err := conn.SendResponse(ctx, resp); err != nil {
 		log.WithFields(log.Fields{
