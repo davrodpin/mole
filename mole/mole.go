@@ -29,23 +29,23 @@ import (
 var cli *Client
 
 type Configuration struct {
-	Id                string                 `json:"id" mapstructure:"id" toml:"id"`
-	TunnelType        string                 `json:"tunnel-type" mapstructure:"tunnel-type" toml:"tunnel-type"`
-	Verbose           bool                   `json:"verbose" mapstructure:"verbose" toml:"verbose"`
-	Insecure          bool                   `json:"insecure" mapstructure:"insecure" toml:"insecure"`
-	Detach            bool                   `json:"detach" mapstructure:"detach" toml:"detach"`
-	Source            alias.AddressInputList `json:"source" mapstructure:"source" toml:"source"`
-	Destination       alias.AddressInputList `json:"destination" mapstructure:"destination" toml:"destination"`
-	Server            alias.AddressInput     `json:"server" mapstructure:"server" toml:"server"`
-	Key               string                 `json:"key" mapstructure:"key" toml:"key"`
-	KeepAliveInterval time.Duration          `json:"keep-alive-interval" mapstructure:"keep-alive-interva" toml:"keep-alive-interval"`
-	ConnectionRetries int                    `json:"connection-retries" mapstructure:"connection-retries" toml:"connection-retries"`
-	WaitAndRetry      time.Duration          `json:"wait-and-retry" mapstructure:"wait-and-retry" toml:"wait-and-retry"`
-	SshAgent          string                 `json:"ssh-agent" mapstructure:"ssh-agent" toml:"ssh-agent"`
-	Timeout           time.Duration          `json:"timeout" mapstructure:"timeout" toml:"timeout"`
-	SshConfig         string                 `json:"ssh-config" mapstructure:"ssh-config" toml:"ssh-config"`
-	Rpc               bool                   `json:"rpc" mapstructure:"rpc" toml:"rpc"`
-	RpcAddress        string                 `json:"rpc-address" mapstructure:"rpc-address" toml:"rpc-address"`
+	Id                string           `json:"id" mapstructure:"id" toml:"id"`
+	TunnelType        string           `json:"tunnel-type" mapstructure:"tunnel-type" toml:"tunnel-type"`
+	Verbose           bool             `json:"verbose" mapstructure:"verbose" toml:"verbose"`
+	Insecure          bool             `json:"insecure" mapstructure:"insecure" toml:"insecure"`
+	Detach            bool             `json:"detach" mapstructure:"detach" toml:"detach"`
+	Source            AddressInputList `json:"source" mapstructure:"source" toml:"source"`
+	Destination       AddressInputList `json:"destination" mapstructure:"destination" toml:"destination"`
+	Server            AddressInput     `json:"server" mapstructure:"server" toml:"server"`
+	Key               string           `json:"key" mapstructure:"key" toml:"key"`
+	KeepAliveInterval time.Duration    `json:"keep-alive-interval" mapstructure:"keep-alive-interva" toml:"keep-alive-interval"`
+	ConnectionRetries int              `json:"connection-retries" mapstructure:"connection-retries" toml:"connection-retries"`
+	WaitAndRetry      time.Duration    `json:"wait-and-retry" mapstructure:"wait-and-retry" toml:"wait-and-retry"`
+	SshAgent          string           `json:"ssh-agent" mapstructure:"ssh-agent" toml:"ssh-agent"`
+	Timeout           time.Duration    `json:"timeout" mapstructure:"timeout" toml:"timeout"`
+	SshConfig         string           `json:"ssh-config" mapstructure:"ssh-config" toml:"ssh-config"`
+	Rpc               bool             `json:"rpc" mapstructure:"rpc" toml:"rpc"`
+	RpcAddress        string           `json:"rpc-address" mapstructure:"rpc-address" toml:"rpc-address"`
 }
 
 // ParseAlias translates a Configuration object to an Alias object.
@@ -302,7 +302,7 @@ func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
 	c.Id = al.Name
 	c.TunnelType = al.TunnelType
 
-	srcl := alias.AddressInputList{}
+	srcl := AddressInputList{}
 	for _, src := range al.Source {
 		err := srcl.Set(src)
 		if err != nil {
@@ -311,7 +311,7 @@ func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
 	}
 	c.Source = srcl
 
-	dstl := alias.AddressInputList{}
+	dstl := AddressInputList{}
 	for _, dst := range al.Destination {
 		err := dstl.Set(dst)
 		if err != nil {
@@ -320,7 +320,7 @@ func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
 	}
 	c.Destination = dstl
 
-	srv := alias.AddressInput{}
+	srv := AddressInput{}
 	err := srv.Set(al.Server)
 	if err != nil {
 		return err
