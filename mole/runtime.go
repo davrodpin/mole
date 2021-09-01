@@ -62,3 +62,22 @@ func (ir InstancesRuntime) ToToml() (string, error) {
 
 	return buf.String(), nil
 }
+
+func (c *Client) Runtime() *Runtime {
+	runtime := Runtime(*c.Conf)
+
+	if c.Tunnel != nil {
+		source := &AddressInputList{}
+		destination := &AddressInputList{}
+
+		for _, channel := range c.Tunnel.Channels() {
+			source.Set(channel.Source)
+			destination.Set(channel.Destination)
+		}
+
+		runtime.Source = *source
+		runtime.Destination = *destination
+	}
+
+	return &runtime
+}
