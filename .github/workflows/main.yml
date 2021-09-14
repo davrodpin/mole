@@ -6,16 +6,13 @@ on:
   pull_request:
     branches: [ $default-branch ]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
-      
+
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
