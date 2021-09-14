@@ -44,6 +44,7 @@ func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 	var host string
 	var hostname string
 	var port string
+	var c *SSHConfigFile
 
 	host = address
 	if strings.Contains(host, ":") {
@@ -52,16 +53,17 @@ func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 		port = args[1]
 	}
 
-	c, err := NewSSHConfigFile(cfgPath)
-	if err != nil {
-		if !(errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid)){
-			return nil, fmt.Errorf("error accessing %s: %v", host, err)
-		}
-	}
-
-	// If ssh config file doesnt exists, create an empty ssh config struct to avoid nil pointer deference
-	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrInvalid){
+	if cfgPath == "" {
 		c = NewEmptySSHConfigStruct()
+	} else {
+		c, err := NewSSHConfigFile(cfgPath)
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("error accessing %s: %v", host, err)
+			} else {
+				c = NewEmptySSHConfigStruct()
+			}
+		}
 	}
 
 	h := c.Get(host)
@@ -451,9 +453,14 @@ func (t *Tunnel) keepAlive() {
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer
 
-	signer, err := server.Key.Parse()
-	if err == nil {
-		signers = append(signers, signer)
+	if server.Key == nil || server.SSHAgent == "" {
+		return nil, fmt.Errorf("at least one authentication method (key or ssh agent) must be present.")
+	}
+	if server.Key != nil {
+		signer, err := server.Key.Parse()
+		if err == nil {
+			signers = append(signers, signer)
+		}
 	}
 
 	if server.SSHAgent != "" {
