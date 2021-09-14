@@ -1,6 +1,0 @@
-{
-    "name": "Main",
-    "description": "Build and test Mole project",
-    "iconName": "go",
-    "categories": ["Go"]
-}
