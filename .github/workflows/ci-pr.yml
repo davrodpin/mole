@@ -1,11 +1,11 @@
-name: CI
+name: CI PR
 
 on:
   pull_request:
     branches: [ master ]
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
 
     steps:

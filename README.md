@@ -1,4 +1,4 @@
-[![CI](https://github.com/davrodpin/mole/actions/workflows/main.yml/badge.svg)](https://github.com/davrodpin/mole/actions/workflows/main.yml)
+[![CI](https://github.com/davrodpin/mole/actions/workflows/ci-master.yml/badge.svg)](https://github.com/davrodpin/mole/actions/workflows/ci-master.yml)
 [![Documentation](https://godoc.org/github.com/davrodpin/mole?status.svg)](http://godoc.org/github.com/davrodpin/mole)
 # [Mole](https://davrodpin.github.io/mole/)
 
