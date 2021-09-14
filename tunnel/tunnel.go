@@ -456,6 +456,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	if server.Key == nil || server.SSHAgent == "" {
 		return nil, fmt.Errorf("at least one authentication method (key or ssh agent) must be present.")
 	}
+
 	if server.Key != nil {
 		signer, err := server.Key.Parse()
 		if err == nil {
@@ -473,6 +474,10 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 		} else {
 			log.WithError(err).Warnf("%s cannot be read. Will not try to talk to ssh agent", server.SSHAgent)
 		}
+	}
+
+	if len(signers) == 0 {
+		return nil, fmt.Errorf("at least one authentication method (key or ssh agent) must be present.")
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
