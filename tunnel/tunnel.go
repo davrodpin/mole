@@ -45,6 +45,7 @@ func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 	var hostname string
 	var port string
 	var c *SSHConfigFile
+	var err error
 
 	host = address
 	if strings.Contains(host, ":") {
@@ -56,7 +57,7 @@ func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 	if cfgPath == "" {
 		c = NewEmptySSHConfigStruct()
 	} else {
-		c, err := NewSSHConfigFile(cfgPath)
+		c, err = NewSSHConfigFile(cfgPath)
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return nil, fmt.Errorf("error accessing %s: %v", host, err)
@@ -453,7 +454,7 @@ func (t *Tunnel) keepAlive() {
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer
 
-	if server.Key == nil || server.SSHAgent == "" {
+	if server.Key == nil && server.SSHAgent == "" {
 		return nil, fmt.Errorf("at least one authentication method (key or ssh agent) must be present.")
 	}
 
@@ -477,7 +478,7 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	}
 
 	if len(signers) == 0 {
-		return nil, fmt.Errorf("at least one authentication method (key or ssh agent) must be present.")
+		return nil, fmt.Errorf("at least one working authentication method (key or ssh agent) must be present.")
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
