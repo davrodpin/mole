@@ -248,7 +248,15 @@ func (t *Tunnel) Start() error {
 
 				log.Debugf("restablishing the tunnel after disconnection: %s", t)
 
-				t.connect()
+				// The reconnecion must happens on a goroutine to support the scenario
+				// where tunnel.Stop() is called while the tunnel.connect() is getting
+				// executed.
+				//
+				// In an event where tunnel.reconnect receives data from any point of the
+				// code rather than tunnel.dial(), which is evoked by tunnel.connect()
+				// this code needs to be updated to make sure tunnel.connect() is not
+				// schedule in two goroutines at the same time.
+				go t.connect()
 			}
 		case err := <-t.done:
 			if t.client != nil {
