@@ -44,6 +44,8 @@ func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 	var host string
 	var hostname string
 	var port string
+	var c *SSHConfigFile
+	var err error
 
 	host = address
 	if strings.Contains(host, ":") {
@@ -52,16 +54,17 @@ func NewServer(user, address, key, sshAgent, cfgPath string) (*Server, error) {
 		port = args[1]
 	}
 
-	c, err := NewSSHConfigFile(cfgPath)
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("error accessing %s: %v", host, err)
-		}
-	}
-
-	// If ssh config file doesnt exists, create an empty ssh config struct to avoid nil pointer deference
-	if errors.Is(err, os.ErrNotExist) {
+	if cfgPath == "" {
 		c = NewEmptySSHConfigStruct()
+	} else {
+		c, err = NewSSHConfigFile(cfgPath)
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("error accessing %s: %v", host, err)
+			} else {
+				c = NewEmptySSHConfigStruct()
+			}
+		}
 	}
 
 	h := c.Get(host)
@@ -471,11 +474,16 @@ func (t *Tunnel) Channels() []*SSHChannel {
 func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer
 
-	signer, err := server.Key.Parse()
-	if err != nil {
-		return nil, err
+	if server.Key == nil && server.SSHAgent == "" {
+		return nil, fmt.Errorf("at least one authentication method (key or ssh agent) must be present.")
 	}
-	signers = append(signers, signer)
+
+	if server.Key != nil {
+		signer, err := server.Key.Parse()
+		if err == nil {
+			signers = append(signers, signer)
+		}
+	}
 
 	if server.SSHAgent != "" {
 		if _, err := os.Stat(server.SSHAgent); err == nil {
@@ -487,6 +495,10 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 		} else {
 			log.WithError(err).Warnf("%s cannot be read. Will not try to talk to ssh agent", server.SSHAgent)
 		}
+	}
+
+	if len(signers) == 0 {
+		return nil, fmt.Errorf("at least one working authentication method (key or ssh agent) must be present.")
 	}
 
 	clb, err := knownHostsCallback(server.Insecure)
@@ -506,6 +518,8 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 
 func copyConn(writer, reader net.Conn) {
 	_, err := io.Copy(writer, reader)
+	defer writer.Close()
+	defer reader.Close()
 	if err != nil {
 		log.Errorf("%v", err)
 	}
