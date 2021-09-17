@@ -480,7 +480,9 @@ func sshClientConfig(server Server) (*ssh.ClientConfig, error) {
 
 	if server.Key != nil {
 		signer, err := server.Key.Parse()
-		if err == nil {
+		if err != nil {
+			log.WithError(err).Warn("invalid key. Skipping authentication using key.")
+		} else {
 			signers = append(signers, signer)
 		}
 	}
