@@ -52,6 +52,11 @@ provide 0 to never give up or a negative number to disable`)
 The default value uses a random free port to listen for requests.
 The full address is kept on $HOME/.mole/<id>.`)
 
+	// id is a hidden flag used to carry the unique identifier of the instance to
+	// the child process when the `--detached` flag is used.
+	cmd.Flags().StringVarP(&conf.Id, mole.IdFlagName, "", "", "")
+	cmd.Flags().MarkHidden(mole.IdFlagName)
+
 	err := cmd.MarkFlagRequired("server")
 	if err != nil {
 		return err
