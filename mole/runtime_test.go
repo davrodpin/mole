@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davrodpin/mole/fsutils"
 	"github.com/davrodpin/mole/mole"
 
 	"github.com/andreyvit/diff"
@@ -95,5 +96,27 @@ func TestFormatRuntimeToML(t *testing.T) {
 		if a, e := strings.TrimSpace(out), strings.TrimSpace(test.expected); a != e {
 			t.Errorf("Result not as expected:\n%v", diff.LineDiff(e, a))
 		}
+	}
+}
+
+func TestClientRunning(t *testing.T) {
+	id := "test-client-running"
+
+	// Mock the pid file using the process id of the program running the test
+	_, err := fsutils.CreateInstanceDir(id)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	conf := &mole.Configuration{Id: id}
+	client := mole.Client{Conf: conf}
+
+	running, err := client.Running()
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	if !running {
+		t.Errorf("client was supposed to be running")
 	}
 }

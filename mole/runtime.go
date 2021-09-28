@@ -3,8 +3,13 @@ package mole
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strconv"
 
 	"github.com/BurntSushi/toml"
+	"github.com/davrodpin/mole/fsutils"
+	ps "github.com/mitchellh/go-ps"
 )
 
 type Formatter interface {
@@ -80,4 +85,37 @@ func (c *Client) Runtime() *Runtime {
 	}
 
 	return &runtime
+}
+
+// Running checks if an instance of mole is running on the system.
+func (c *Client) Running() (bool, error) {
+	d, err := fsutils.InstanceDir(c.Conf.Id)
+	if err != nil {
+		return false, err
+	}
+
+	if _, err := os.Stat(d.PidFile); os.IsNotExist(err) {
+		return false, nil
+	}
+
+	pd, err := ioutil.ReadFile(d.PidFile)
+	if err != nil {
+		return false, err
+	}
+
+	pid, err := strconv.Atoi(string(pd))
+	if err != nil {
+		return false, err
+	}
+
+	ps, err := ps.FindProcess(pid)
+	if err != nil {
+		return false, err
+	}
+
+	if ps == nil {
+		return false, nil
+	}
+
+	return true, nil
 }

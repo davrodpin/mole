@@ -63,16 +63,12 @@ func CreateInstanceDir(appId string) (*InstanceDirInfo, error) {
 
 	d := filepath.Join(home, appId)
 
-	if _, err := os.Stat(d); !os.IsNotExist(err) {
-		return InstanceDir(appId)
-	}
-
 	err = os.MkdirAll(d, 0755)
 	if err != nil {
 		return nil, err
 	}
 
-	pfl, err := createPidFile(appId)
+	pfl, err := CreatePidFile(appId)
 	if err != nil {
 		return nil, err
 	}
@@ -132,24 +128,12 @@ func GetLogFileLocation(id string) (string, error) {
 	return lfp, nil
 }
 
-func createPidFile(id string) (string, error) {
+// CreatePidFile creates a file, inside the directory allocated for instance,
+// witht the instance process id.
+func CreatePidFile(id string) (string, error) {
 	pfl, err := GetPidFileLocation(id)
 	if err != nil {
 		return "", err
-	}
-
-	if _, err = os.Stat(pfl); !os.IsNotExist(err) {
-		data, err := ioutil.ReadFile(pfl)
-		if err != nil {
-			return "", fmt.Errorf("something went wrong while reading from pid file %s: %v", pfl, err)
-		}
-
-		pid := string(data)
-
-		if pid != "" {
-			return "", fmt.Errorf("an instance of mole with pid %s seems to be already running", pid)
-		}
-
 	}
 
 	pf, err := os.Create(pfl)
@@ -160,7 +144,6 @@ func createPidFile(id string) (string, error) {
 	pf.WriteString(strconv.Itoa(os.Getpid()))
 
 	return pfl, nil
-
 }
 
 // RpcAddress returns the network address of the rpc server for a given

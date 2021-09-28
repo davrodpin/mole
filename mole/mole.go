@@ -23,6 +23,12 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+const (
+	// IdFlagName is the name of the flag that carries the unique idenfier for a
+	// mole instance.
+	IdFlagName = "id"
+)
+
 // cli keeps a reference to the latest Client object created.
 // This is mostly needed to introspect client states during runtime (e.g. a
 // remote procedure call that needs to check certain runtime information)
@@ -101,6 +107,23 @@ func (c *Client) Start() error {
 			return fmt.Errorf("could not auto generate app instance id: %v", err)
 		}
 		c.Conf.Id = u.String()[:8]
+	}
+
+	r, err := c.Running()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"id": c.Conf.Id,
+		}).WithError(err).Error("error while checking for another instance using the same id")
+
+		return err
+	}
+
+	if r {
+		log.WithFields(log.Fields{
+			"id": c.Conf.Id,
+		}).Error("can't start. Another instance is already using the same id")
+
+		return fmt.Errorf("can't start. Another instance is already using the same id %s", c.Conf.Id)
 	}
 
 	log.Infof("instance identifier is %s", c.Conf.Id)
@@ -362,13 +385,15 @@ func ShowInstance(id string) (*Runtime, error) {
 }
 
 func startDaemonProcess(instanceConf *DetachedInstance) error {
+	args := appendIdArg(instanceConf.Id, os.Args)
+
 	cntxt := &daemon.Context{
-		PidFileName: fsutils.InstancePidFile,
+		PidFileName: instanceConf.PidFile,
 		PidFilePerm: 0644,
-		LogFileName: fsutils.InstanceLogFile,
+		LogFileName: instanceConf.LogFile,
 		LogFilePerm: 0640,
 		Umask:       027,
-		Args:        os.Args,
+		Args:        args,
 	}
 
 	d, err := cntxt.Reborn()
@@ -377,12 +402,12 @@ func startDaemonProcess(instanceConf *DetachedInstance) error {
 	}
 
 	if d != nil {
-		err = os.Rename(fsutils.InstancePidFile, instanceConf.PidFile)
+		err = os.Rename(instanceConf.PidFile, instanceConf.PidFile)
 		if err != nil {
 			return err
 		}
 
-		err = os.Rename(fsutils.InstanceLogFile, instanceConf.LogFile)
+		err = os.Rename(instanceConf.LogFile, instanceConf.LogFile)
 		if err != nil {
 			return err
 		}
@@ -465,4 +490,22 @@ func createTunnel(conf *Configuration) (*tunnel.Tunnel, error) {
 	t.KeepAliveInterval = conf.KeepAliveInterval
 
 	return t, nil
+}
+
+// appendIdArg adds the id argument to the list of arguments passed by the user.
+// This is helpful for scenarios where the process will be detached from the
+// parent process and the new child process needs context about the instance.
+func appendIdArg(id string, args []string) (newArgs []string) {
+	for _, arg := range args {
+		if arg == "--id" {
+			return args
+		}
+	}
+
+	newArgs = make([]string, len(args)+2)
+	copy(newArgs, args)
+	newArgs[len(args)-2] = fmt.Sprintf("--%s", IdFlagName)
+	newArgs[len(args)-1] = id
+
+	return
 }
