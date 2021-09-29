@@ -19,6 +19,7 @@ INFO[0000] tunnel channel is waiting for connection      destination="127.0.0.1:
   * Resiliency! Then tunnel will never go down if you don't want to:
     * Idle clients do not get disconnected from the ssh server since Mole keeps sending synthetic packets acting as a keep alive mechanism. 
     * Auto reconnection to the ssh server if the it is dropped by any reason.
+  * Embedded rpc server to retrieve runtime information about one or more instances running on the system.
 
 # Table of Contents
 
@@ -42,6 +43,7 @@ INFO[0000] tunnel channel is waiting for connection      destination="127.0.0.1:
   * [Leveraging LocalForward from SSH configuration file](#leveraging-localforward-from-ssh-configuration-file)
   * [Leveraging RemoteForward from SSH configuration file](#leveraging-remoteforward-from-ssh-configuration-file)
   * [Create multiple tunnels using a single ssh connection](#create-multiple-tunnels-using-a-single-ssh-connection)
+  * [Show logs of any detached mole instance](#show-logs-of-any-detached-mole-instance)
 
 # Use Cases
 
@@ -330,3 +332,79 @@ INFO[0000] tunnel channel is waiting for connection      destination="192.168.33
 INFO[0000] tunnel channel is waiting for connection      destination="192.168.33.11:80" source="127.0.0.1:9090"
 ```
 
+### Show logs of any detached mole instance
+
+```sh
+$ mole start local \
+    --detach \
+    --source :9090 \
+    --source :9091 \
+    --destination 192.168.33.11:80 \
+    --destination 192.168.33.11:8080 \
+    --server example
+INFO[0000] instance identifier is afb046da
+INFO[0000] execute "mole stop afb046da" if you like to stop it at any time
+$ mole show logs --follow afb046da
+time="2021-09-17T13:57:10-07:00" level=info msg="instance identifier is 1879de9f"
+time="2021-09-17T13:57:10-07:00" level=debug msg="generating an empty config struct"
+time="2021-09-17T13:57:10-07:00" level=debug msg="server: [name=127.0.0.01, address=127.0.0.01:22122, user=mole]"
+time="2021-09-17T13:57:10-07:00" level=debug msg="tunnel: [channels:[[source=127.0.0.1:9888, destination=192.168.33.11:80]], server:127.0.0.01:22122]"
+time="2021-09-17T13:57:10-07:00" level=debug msg="connection to the ssh server is established" server="[name=127.0.0.01, address=127.0.0.01:22122, user=mole]"
+time="2021-09-17T13:57:10-07:00" level=info msg="tunnel channel is waiting for connection" destination="192.168.33.11:80" source="127.0.0.1:9888"
+time="2021-09-17T13:57:10-07:00" level=debug msg="start sending keep alive packets"
+```
+
+### Show the running configuration of all/any mole instance
+
+```sh
+$ mole start local \
+    --detach \
+    --rpc \
+    --source :9090 \
+    --source :9091 \
+    --destination 192.168.33.11:80 \
+    --destination 192.168.33.11:8080 \
+    --server example
+INFO[0000] instance identifier is 2b3d05be
+INFO[0000] execute "mole stop 2b3d05be" if you like to stop it at any time
+$ mole show instances 2b3d05be
+id = "2b3d05be"
+tunnel-type = "local"
+verbose = false
+insecure = false
+detach = true
+key = "$HOME/.ssh/id_rsa"
+keep-alive-interval = 0
+connection-retries = 3
+wait-and-retry = 3000000000
+ssh-agent = ""
+timeout = 3000000000
+ssh-config = "$HOME/.ssh/config"
+rpc = true
+rpc-address = "127.0.0.1:49923"
+
+[[source]]
+  user = ""
+  host = "127.0.0.1"
+  port = "9090"
+
+[[source]]
+  user = ""
+  host = "127.0.0.1"
+  port = "9092"
+
+[[destination]]
+  user = ""
+  host = "192.168.33.11"
+  port = "80"
+
+[[destination]]
+  user = ""
+  host = "192.168.33.11"
+  port = "8080"
+
+[server]
+  user = ""
+  host = "example"
+  port = "22"
+```

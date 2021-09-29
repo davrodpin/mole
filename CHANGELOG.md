@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2021-09-28
+### Added
+- Add [CHANGELOG.md](https://github.com/davrodpin/mole/blob/master/CHANGELOG.md) file to track changes on releases [89290e8]
+- Add new command to show running configuration of any mole instance [#161]
+- Stop foreground instances using the `stop` command [#158]
+- Add new command, `misc rpc` to explicitly execute procedures on running instances of mole [#148]
+- rpc server (disabled by default) [#146]
+- New flag to pass SSH config file path [#136]
+- Add new command: show logs  [#132]
+
+### Changed
+- Change output of "show alias" to toml format. [#144]
+- Skip private key authentication in case of error (encrypted without passphrase, wrong format, ...) [#159] [#169]
+- Close reader/writer on ssh channel when finished or error occurs [#159]
+- Don't fail but create new empty config when no config (empty string) file was used [#159]
+- Fix start alias flag parsing [#157]
+
+### Deleted
+
 ## [1.0.1] - 2020-09-01
 ### Added
 - The installation script can now receive a parameter to install a specific version instead of always installing the latest [#124]
