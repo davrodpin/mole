@@ -11,7 +11,7 @@ cover: test
 	go tool cover -html=coverage.txt -o coverage.html
 
 lint:
-	@golangci-lint run
+	@golangci-lint run --tests=false ./...
 
 build:
 	@go build -o bin/mole github.com/davrodpin/mole
