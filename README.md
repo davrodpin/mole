@@ -10,12 +10,33 @@ please visit https://davrodpin.github.io/mole/
 
 ## How to build from source
 
-[Go 1.14+](https://golang.org/dl/) is required to be installed on your system to
+[Go 1.17.1+](https://golang.org/dl/) is required to be installed on your system to
 build this project.
 
 ```sh
 $ make build
-$ sudo make install
+```
+
+## How to run tests
+
+```sh
+$ make test
+```
+
+## How to generate a code coverage report
+
+```sh
+$ make cover && open coverage.html
+```
+
+## How to run static analysis
+
+1. Install [golangci-lint](https://golangci-lint.run/usage/install/)
+
+2. Run the following command
+
+```sh
+$ make lint
 ```
 
 # Test Environment
