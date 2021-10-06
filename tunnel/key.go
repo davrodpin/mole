@@ -49,7 +49,7 @@ func (k PemKey) IsEncrypted() (bool, error) {
 		return false, err
 	}
 
-	return x509.IsEncryptedPEMBlock(p), nil
+	return x509.IsEncryptedPEMBlock(p), nil //nolint
 }
 
 // Parse translates a pem key to a signer to create signatures that verify

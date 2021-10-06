@@ -65,13 +65,33 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		log.Errorf("rpc request method %s not supported", req.Method)
 
 		if !req.Notif {
+			var err error
+
 			resp := &jsonrpc2.Response{}
-			resp.SetResult(jsonrpc2.Error{
+			err = resp.SetResult(jsonrpc2.Error{
 				Code:    jsonrpc2.CodeMethodNotFound,
 				Message: fmt.Sprintf("method %s not found", req.Method),
 			})
+			if err != nil {
+				log.WithFields(log.Fields{
+					"notification": req.Notif,
+					"method":       req.Method,
+					"id":           req.ID,
+				}).WithError(err).Error("could not send rpc error response")
 
-			sendResponse(ctx, conn, req, resp)
+				return
+			}
+
+			err = sendResponse(ctx, conn, req, resp)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"notification": req.Notif,
+					"method":       req.Method,
+					"id":           req.ID,
+				}).WithError(err).Error("could not send rpc response")
+
+				return
+			}
 		}
 
 		return
@@ -86,13 +106,33 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		}).WithError(err).Warn("error executing rpc method.")
 
 		if !req.Notif {
+			var err error
 			resp := &jsonrpc2.Response{}
-			resp.SetResult(jsonrpc2.Error{
+
+			err = resp.SetResult(jsonrpc2.Error{
 				Code:    jsonrpc2.CodeInternalError,
 				Message: fmt.Sprintf("error executing rpc method %s", req.Method),
 			})
+			if err != nil {
+				log.WithFields(log.Fields{
+					"notification": req.Notif,
+					"method":       req.Method,
+					"id":           req.ID,
+				}).WithError(err).Error("could not send rpc error response")
 
-			sendResponse(ctx, conn, req, resp)
+				return
+			}
+
+			err = sendResponse(ctx, conn, req, resp)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"notification": req.Notif,
+					"method":       req.Method,
+					"id":           req.ID,
+				}).WithError(err).Error("could not send rpc response")
+
+				return
+			}
 		}
 
 		return
@@ -108,13 +148,33 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 		}).WithError(err).Warn("error executing rpc method.")
 
 		if !req.Notif {
+			var err error
+
 			resp := &jsonrpc2.Response{}
-			resp.SetResult(jsonrpc2.Error{
+			err = resp.SetResult(jsonrpc2.Error{
 				Code:    jsonrpc2.CodeInternalError,
 				Message: fmt.Sprintf("error executing rpc method %s", req.Method),
 			})
+			if err != nil {
+				log.WithFields(log.Fields{
+					"notification": req.Notif,
+					"method":       req.Method,
+					"id":           req.ID,
+				}).WithError(err).Error("could not send rpc error response")
 
-			sendResponse(ctx, conn, req, resp)
+				return
+			}
+
+			err = sendResponse(ctx, conn, req, resp)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"notification": req.Notif,
+					"method":       req.Method,
+					"id":           req.ID,
+				}).WithError(err).Error("could not send rpc response")
+
+				return
+			}
 		}
 
 		return
@@ -123,7 +183,16 @@ func (h *Handler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2
 	if !req.Notif {
 		resp := &jsonrpc2.Response{ID: req.ID, Result: &rm}
 
-		sendResponse(ctx, conn, req, resp)
+		err = sendResponse(ctx, conn, req, resp)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"notification": req.Notif,
+				"method":       req.Method,
+				"id":           req.ID,
+			}).WithError(err).Error("could not send rpc response")
+
+			return
+		}
 	}
 }
 
@@ -137,12 +206,6 @@ type Method func(params interface{}) (json.RawMessage, error)
 
 func sendResponse(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request, resp *jsonrpc2.Response) error {
 	if err := conn.SendResponse(ctx, resp); err != nil {
-		log.WithFields(log.Fields{
-			"notification": req.Notif,
-			"method":       req.Method,
-			"id":           req.ID,
-		}).WithError(err).Warn("error sending rpc response.")
-
 		return err
 	}
 
