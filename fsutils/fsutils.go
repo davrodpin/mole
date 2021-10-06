@@ -141,7 +141,11 @@ func CreatePidFile(id string) (string, error) {
 		return "", fmt.Errorf("could not create pid file for application instance %s: %v", id, err)
 	}
 	defer pf.Close()
-	pf.WriteString(strconv.Itoa(os.Getpid()))
+
+	_, err = pf.WriteString(strconv.Itoa(os.Getpid()))
+	if err != nil {
+		return "", err
+	}
 
 	return pfl, nil
 }

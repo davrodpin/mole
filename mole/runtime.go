@@ -68,7 +68,7 @@ func (ir InstancesRuntime) ToToml() (string, error) {
 	return buf.String(), nil
 }
 
-func (c *Client) Runtime() *Runtime {
+func (c *Client) Runtime() (*Runtime, error) {
 	runtime := Runtime(*c.Conf)
 
 	if c.Tunnel != nil {
@@ -76,15 +76,25 @@ func (c *Client) Runtime() *Runtime {
 		destination := &AddressInputList{}
 
 		for _, channel := range c.Tunnel.Channels() {
-			source.Set(channel.Source)
-			destination.Set(channel.Destination)
+			var err error
+
+			err = source.Set(channel.Source)
+			if err != nil {
+				return nil, err
+			}
+
+			err = destination.Set(channel.Destination)
+			if err != nil {
+				return nil, err
+			}
+
 		}
 
 		runtime.Source = *source
 		runtime.Destination = *destination
 	}
 
-	return &runtime
+	return &runtime, nil
 }
 
 // Running checks if an instance of mole is running on the system.

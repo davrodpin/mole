@@ -43,9 +43,7 @@ var startLocalCmd = &cobra.Command{
 }
 
 func init() {
-	var err error
-
-	err = bindFlags(conf, startLocalCmd)
+	err := bindFlags(conf, startLocalCmd)
 	if err != nil {
 		log.WithError(err).Error("error parsing command line arguments")
 		os.Exit(1)

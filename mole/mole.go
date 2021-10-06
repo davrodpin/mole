@@ -255,7 +255,10 @@ func (c *Client) handleSignals() {
 	signal.Notify(c.sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	sig := <-c.sigs
 	log.Debugf("process signal %s received", sig)
-	c.Stop()
+	err := c.Stop()
+	if err != nil {
+		log.WithError(err).Error("instance not properly stopped")
+	}
 }
 
 // Merge overwrites Configuration from the given Alias.
@@ -264,9 +267,7 @@ func (c *Client) handleSignals() {
 // only if they are found on the givenFlags which should contain the name of
 // all flags given by the user through UI (e.g. CLI).
 func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
-	var fl flags
-
-	fl = givenFlags
+	var fl flags = givenFlags
 
 	if !fl.lookup("verbose") {
 		c.Verbose = al.Verbose
@@ -417,7 +418,14 @@ func startDaemonProcess(instanceConf *DetachedInstance) error {
 		os.Exit(0)
 	}
 
-	defer cntxt.Release()
+	defer func() {
+		err := cntxt.Release()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"id": instanceConf.Id,
+			}).WithError(err).Error("error detaching the mole instance")
+		}
+	}()
 
 	return nil
 }
