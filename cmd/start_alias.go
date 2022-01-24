@@ -21,6 +21,11 @@ The flags provided through this command can be used to override the one with the
 same name stored in the alias.
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
+		// for the child process when the `--detached` flag is used.
+		if conf.Id != "" {
+			aliasName = conf.Id
+			return nil
+		}
 		if len(args) < 1 {
 			return errors.New("alias name not provided")
 		}
@@ -67,6 +72,9 @@ func init() {
 	startAliasCmd.Flags().BoolVarP(&conf.Verbose, "verbose", "v", false, "increase log verbosity")
 	startAliasCmd.Flags().BoolVarP(&conf.Insecure, "insecure", "i", false, "skip host key validation when connecting to ssh server")
 	startAliasCmd.Flags().BoolVarP(&conf.Detach, "detach", "x", false, "run process in background")
-
+	// id is a hidden flag used to carry the unique identifier of the instance to
+	// the child process when the `--detached` flag is used.
+	startAliasCmd.Flags().StringVarP(&conf.Id, mole.IdFlagName, "", "", "")
+	_ = startAliasCmd.Flags().MarkHidden(mole.IdFlagName)
 	startCmd.AddCommand(startAliasCmd)
 }
