@@ -583,13 +583,17 @@ func buildSSHChannels(serverName, channelType string, source, destination []stri
 	// if source and destination were not given, try to find the addresses from the
 	// SSH configuration file.
 	if len(source) == 0 && len(destination) == 0 {
-		f, err := getForward(channelType, serverName, cfgPath)
+		fwds, err := getForwards(channelType, serverName, cfgPath)
 		if err != nil {
 			return nil, err
 		}
 
-		source = []string{f.Source}
-		destination = []string{f.Destination}
+		source = []string{}
+		destination = []string{}
+		for _, f := range fwds {
+			source = append(source, f.Source)
+			destination = append(destination, f.Destination)
+		}
 	} else {
 
 		lSize := len(source)
@@ -640,8 +644,8 @@ func buildSSHChannels(serverName, channelType string, source, destination []stri
 	return channels, nil
 }
 
-func getForward(channelType, serverName string, cfgPath string) (*ForwardConfig, error) {
-	var f *ForwardConfig
+func getForwards(channelType, serverName string, cfgPath string) ([]*ForwardConfig, error) {
+	var fwds []*ForwardConfig
 
 	cfg, err := NewSSHConfigFile(cfgPath)
 	if err != nil {
@@ -651,16 +655,16 @@ func getForward(channelType, serverName string, cfgPath string) (*ForwardConfig,
 	sh := cfg.Get(serverName)
 
 	if channelType == "local" {
-		f = sh.LocalForward
+		fwds = sh.LocalForwards
 	} else if channelType == "remote" {
-		f = sh.RemoteForward
+		fwds = sh.RemoteForwards
 	} else {
 		return nil, fmt.Errorf("could not retrieve forwarding information from ssh configuration file: unsupported channel type %s", channelType)
 	}
 
-	if f == nil {
+	if fwds == nil {
 		return nil, fmt.Errorf("forward config could not be found or has invalid syntax for host %s", serverName)
 	}
 
-	return f, nil
+	return fwds, nil
 }
