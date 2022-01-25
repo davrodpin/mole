@@ -338,6 +338,14 @@ func TestBuildSSHChannels(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			serverName:    "hostWithTwoLocalForwards",
+			source:        []string{},
+			destination:   []string{},
+			config:        "testdata/.ssh/config",
+			expected:      2,
+			expectedError: nil,
+		},
+		{
 			serverName:    "test",
 			source:        []string{":3360", ":8080"},
 			destination:   []string{":3360"},

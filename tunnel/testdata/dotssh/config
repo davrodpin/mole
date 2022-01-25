@@ -17,3 +17,10 @@ Host hostWithLocalForward
     User mole_test
     IdentityFile ~/.ssh/id_rsa
 
+Host hostWithTwoLocalForwards
+    Hostname 127.0.0.1
+    Port 2222
+    LocalForward 8080 172.17.0.1:8080
+    LocalForward 9090 172.17.0.1:9090
+    User mole_test
+    IdentityFile ~/.ssh/id_rsa

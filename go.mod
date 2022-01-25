@@ -9,7 +9,7 @@ require (
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/hpcloud/tail v1.0.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/kevinburke/ssh_config v0.0.0-20190630040420-2e50c441276c
+	github.com/kevinburke/ssh_config v1.1.0
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pelletier/go-buffruneio v0.2.0 // indirect
