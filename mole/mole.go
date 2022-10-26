@@ -333,7 +333,9 @@ func (c *Configuration) Merge(al *alias.Alias, givenFlags []string) error {
 	}
 	c.Timeout = tim
 
-	c.SshConfig = al.SshConfig
+	if al.SshConfig != "" {
+		c.SshConfig = al.SshConfig
+	}
 
 	c.Rpc = al.Rpc
 
